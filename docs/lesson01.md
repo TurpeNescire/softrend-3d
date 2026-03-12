@@ -5,6 +5,10 @@ lesson_label: "Lesson 01"
 next_lesson: /lesson02
 ---
 
+![Lesson 01 banner]({{ '/images/lesson01_banner.jpg' | relative_url }})
+
 # Lesson 01: Setup
 
-Content goes here.
+## Test
+
+Test content lorem ipsum blah blah
