@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }}</title>
+  <link rel="stylesheet" href="{{ '/css/style.css' | relative_url }}">
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="{{ '/' | relative_url }}">Table of Contents</a>
+    {% if page.prev_lesson %}
+      &nbsp;·&nbsp;
+      <a href="{{ page.prev_lesson | relative_url }}">← Previous</a>
+    {% endif %}
+    {% if page.next_lesson %}
+      &nbsp;·&nbsp;
+      <a href="{{ page.next_lesson | relative_url }}">Next →</a>
+    {% endif %}
+  </nav>
+
+  <main>
+    {{ content }}
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="{{ '/' | relative_url }}">Table of Contents</a>
+    {% if page.prev_lesson %}
+      &nbsp;·&nbsp;
+      <a href="{{ page.prev_lesson | relative_url }}">← Previous</a>
+    {% endif %}
+    {% if page.next_lesson %}
+      &nbsp;·&nbsp;
+      <a href="{{ page.next_lesson | relative_url }}">Next →</a>
+    {% endif %}
+  </nav>
+</body>
+</html>

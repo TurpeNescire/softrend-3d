@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+__MACOSX/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+.idea/
+
+# Build artifacts
+*.o
+*.a
+*.dylib
+*.out
+build/
+bin/
+
+# Clang
+*.dSYM/
+
