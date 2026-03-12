@@ -3,10 +3,12 @@ layout: lesson
 title: "SoftRend3D: Software Rendering from Scratch"
 ---
 
+![Lesson 01 banner]({{ '/images/lesson_01_banner.jpg' | relative_url }})
+
 # SoftRend3D: Software Rendering from Scratch
 
 A series of lessons building a 3D software rasterizer in C, from blank framebuffer to textured meshes.
 
 ## Lessons
 
-- [Lesson 01: Title Here](lesson01)
+- [Lesson 01: Setup](lesson_01)
