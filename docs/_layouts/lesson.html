@@ -5,34 +5,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title }}</title>
   <link rel="stylesheet" href="{{ '/css/style.css' | relative_url }}">
+  <!-- Apply saved theme before first paint to prevent flash -->
+  <script>
+    (function () {
+      var t = localStorage.getItem('sr3d-theme') || 'theme-dark';
+      document.documentElement.className = t;
+    })();
+  </script>
 </head>
 <body>
-  <nav class="top-nav">
-    <a href="{{ '/' | relative_url }}">Table of Contents</a>
+
+  <nav class="lesson-nav">
+    <a href="{{ '/' | relative_url }}">Contents</a>
     {% if page.prev_lesson %}
-      &nbsp;·&nbsp;
-      <a href="{{ page.prev_lesson | relative_url }}">← Previous</a>
+      <a href="{{ page.prev_lesson | relative_url }}">← Prev</a>
     {% endif %}
     {% if page.next_lesson %}
-      &nbsp;·&nbsp;
       <a href="{{ page.next_lesson | relative_url }}">Next →</a>
     {% endif %}
+    <div class="nav-links">
+      <select id="theme-picker">
+        <option value="theme-dark">Dark</option>
+        <option value="theme-terminal">Terminal</option>
+        <option value="theme-docs">Docs</option>
+        <option value="theme-editorial">Editorial</option>
+      </select>
+    </div>
   </nav>
 
   <main>
+    <div class="accent-rule"></div>
+    <div class="lesson-label">{{ page.lesson_label | default: "" }}</div>
     {{ content }}
   </main>
 
   <nav class="bottom-nav">
-    <a href="{{ '/' | relative_url }}">Table of Contents</a>
-    {% if page.prev_lesson %}
-      &nbsp;·&nbsp;
-      <a href="{{ page.prev_lesson | relative_url }}">← Previous</a>
-    {% endif %}
-    {% if page.next_lesson %}
-      &nbsp;·&nbsp;
-      <a href="{{ page.next_lesson | relative_url }}">Next →</a>
-    {% endif %}
+    <a href="{{ '/' | relative_url }}">↑ Contents</a>
+    <span>
+      {% if page.prev_lesson %}
+        <a href="{{ page.prev_lesson | relative_url }}">← Prev</a>
+        &nbsp;
+      {% endif %}
+      {% if page.next_lesson %}
+        <a href="{{ page.next_lesson | relative_url }}">Next →</a>
+      {% endif %}
+    </span>
   </nav>
+
+  <script src="{{ '/js/theme.js' | relative_url }}"></script>
 </body>
 </html>
