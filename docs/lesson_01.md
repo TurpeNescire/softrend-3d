@@ -33,12 +33,12 @@ This tutorial series assumes you have a working knowledge of the [C programming 
 Aside from the [C standard library](https://en.wikipedia.org/wiki/C_standard_library) we should only need Fenster and [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h), both of which we can include directly in our project directories without linking to external system libraries. I'll include a Makefile in the project source that should compile on Windows, Linux and Mac, but on Windows this might require some extra work. If you have Windows 10 you can install [Windows Subsystem for Linux (WSL)](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) which comes installed on Windows 11 by default and run `sudo apt install make`. Because we not linking to external system installed libraries there should be no added complexity for compiling with a visual IDE like Visual Studio.
 
 ## What's a framebuffer?
-![Lesson 01 Buffer Array]({{ 'lesson_01_buffer_array.png' | relative_url }}){: width="100%"}
+![Lesson 01 Buffer Array]({{ '/images/lesson_01_buffer_array.png' | relative_url }}){: width="100%"}
 
 A [framebuffer](https://en.wikipedia.org/wiki/Framebuffer) is a contiguous section of RAM that represents all of the pixels on the screen. Most modern applications use 32-bits for each pixel in either ARGB or RGBA order, with 1 byte per channel (R=red, G=green, B=blue, A=alpha or transparency). Often they will use structs with separate fields for each channel, but Fenster packs all color channels into a single 4 byte word. When converting between different libraries or formats, you need to be specific about the order of color channels. We'll come back to this in the program source for this lesson.
 
 ## Download and compiling the Fenster library
-The simplest method is to just copy [fenster.h](https://github.com/zserge/fenster/blob/main/fenster.h) to your project directory. I like to store headers in the /include directory of my project, which is what I will assume going forward. Depending on your operating system. The most basic fenster program is listed in the article listed above by the creator:
+The simplest method is to just copy [fenster.h](https://github.com/zserge/fenster/blob/main/fenster.h) to your project directory. I like to store headers in the `/include` directory of my project, which is what I will assume going forward. The most basic Fenster program is listed in the article listed above by the creator:
 
     #include "../include/fenster.h"
     
@@ -69,5 +69,7 @@ To compile, you simply run the command `cc -i include src/main.c -o softrend -fr
 
 You should see a 600x400 console window pop up with all black contents and a window title of "Hello, World!":
 
-![Lesson 01 Fenster Window]({{ 'lesson_01_fenster_window.png' | relative_url }}){: width="100%"}
+![Lesson 01 Fenster Window]({{ '/images/lesson_01_fenster_window.png' | relative_url }}){: width="100%"}
 
+## Source
+[Github Source](https://github.com/TurpeNescire/softrend-3d/tree/2120947b2bfac14a45bfb445d76b93efb96af1eb)
