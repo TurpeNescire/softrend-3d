@@ -4,7 +4,7 @@ title: "Lesson 01: Setup"
 lesson_label: "Lesson 01"
 next_lesson: /lesson_02
 ---
-![Lesson 01 banner]({{ '/images/lesson_01_banner.jpg' | relative_url }}){: width="100%"}
+![Lesson 01 banner]({{ '/images/lesson_01_banner.png' | relative_url }}){: width="100%"}
 
 # Lesson 01: Purpose and Setup
 
@@ -115,7 +115,7 @@ Like most windowing libraries, Fenster continuously loops over the system event 
         // print FPS once a second
         frameCount++;
         if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
-            printf("fps: %d\n", frames);
+            printf("fps: %d\n", frameCount);
             frameCount  = 0;
             secondStart = fenster_time();
         }
@@ -138,7 +138,7 @@ On my system it starts out printing a very high number (~700ms) then settles aro
     fenster_close(&window);
 ```
 
-Because we declared the `buffer` array globally on the stack it is 0 initialized and this code will add 1 to each pixel value.  At 0, each channel starts out black and ramps up to full intensity blue at 255 (each channel has 256 possible values, 0-255). After hitting 255, the pixel adds 1 to the next channel (green) and due to signed integer wraparound the blue byte starts over at 0 again ramping across the blue colors, but now with a tiny 1 bit shift towards green. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame. 
+Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value.  At 0, each channel starts out black and ramps up to full intensity blue at 255 (each channel has 256 possible values, 0-255). After hitting 255, the pixel adds 1 to the next channel (green) and due to unsigned integer wraparound the blue byte starts over at 0 again ramping across the blue colors, but now with a tiny 1 bit shift towards green. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame. 
 
 ### Capping FPS
 If we want to limit the frame time to a specific value, we can add a few lines of code. We add a few \#defines at the top of the file:
@@ -173,5 +173,8 @@ and at the end of the loop:
     }
 ```
 
+As a point of curiosity, if we were taking 39 hours before to draw all possible RBG values we'd now take around 78 hours to iterate over all the colors values. Worth noting that the alpha value is ignored, so it actually would take us around 2.27 years before the alpha channel wrapped back to 0 for each pixel.
+
 ## Source
-[Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/2120947b2bfac14a45bfb445d76b93efb96af1eb)
+[Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/07b1e965b231eb930a9f89b56a5b6f81371fde2d)
+
