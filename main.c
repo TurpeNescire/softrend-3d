@@ -27,53 +27,49 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR   *
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.                                 *
  * ************************************************************************** */
+
 #include "../include/fenster.h"
 
 #define WIDTH  600
 #define HEIGHT 400
 
-#define FPS    60               // Targeted frame rate (frequency in hz)
-#define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
+#define B_END_ALPHA  3
+#define B_END_RED    2
+#define B_END_GREEN  1
+#define B_END_BLUE   0
 
-const uint32_t RED = 0xFFFF0000;
+uint32_t pixelColor = 0x0;
 
 uint32_t buffer[WIDTH * HEIGHT];
 
 int main()
 {
     struct fenster window = {
-        .title  = "Hello, World!",
-        .width  = WIDTH,
+        .title = "Hello, World!",
+        .width = WIDTH,
         .height = HEIGHT,
         .buf    = buffer
     };
 
+    for (int i = 0; i < WIDTH * HEIGHT; i++)
+        buffer[i] = 0;
+
+    uint8_t *bytes = (uint8_t *)&pixelColor;
+    bytes[B_END_RED] = 0xFF;
+    printf("B:%02X G:%02X R:%02X A:%02X\n", bytes[B_END_BLUE], bytes[B_END_GREEN], bytes[B_END_RED], bytes[B_END_ALPHA]);
+
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
-    int64_t secondStart = fenster_time();
-    int64_t frameStart  = secondStart;
-    int     frameCount  = 0;
     while (fenster_loop(&window) == 0) {
-        // print FPS once a second
-        frameCount++; 
-        if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
-            printf("fps: %d\n", frameCount);
-            frameCount  = 0;
-            secondStart = fenster_time();
-        }
-
         for (int i = 0; i < WIDTH * HEIGHT; i++) {
-            buffer[i] += 1;
+            buffer[i] = pixelColor;
         }
-
-        // sleep until we reach desired FRAME_TIME 
-        int64_t remainingMS = frameStart + FRAME_TIME - fenster_time();
-        if (remainingMS > 0) fenster_sleep(remainingMS);
-        frameStart = fenster_time();
+        pixelColor += 1;
+        if (pixelColor % 256 == 0)
+            printf("%u\n", pixelColor); 
     }
 
     fenster_close(&window);
 }
-
 
