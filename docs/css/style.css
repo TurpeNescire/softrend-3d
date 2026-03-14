@@ -151,3 +151,16 @@ body.theme-editorial nav.bottom-nav a { color: #993C1D; }
 body.theme-editorial select#theme-picker { background: #faf8f5; color: #5F5E5A; border-color: #dddbd5; font-family: Georgia, serif; }
 body.theme-editorial .accent-rule { display: block; background: #993C1D; width: 36px; height: 3px; }
 
+.highlight .c  { color: #6a9955 } /* Comment */
+.highlight .k  { color: #569cd6 } /* Keyword */
+.highlight .s  { color: #ce9178 } /* String */
+.highlight .n  { color: #9cdcfe } /* Name */
+.highlight .o  { color: #d4d4d4 } /* Operator */
+.highlight .p  { color: #d4d4d4 } /* Punctuation */
+.highlight .mi { color: #b5cea8 } /* Integer literal */
+.highlight .mf { color: #b5cea8 } /* Float literal */
+.highlight .cp { color: #569cd6 } /* Preprocessor */
+.highlight .nf { color: #dcdcaa } /* Function name */
+.highlight .kt { color: #569cd6 } /* Keyword type */
+.highlight pre { background: #1e1e1e; padding: 1em; overflow-x: auto; }
+.highlight     { background: #1e1e1e; color: #d4d4d4; }

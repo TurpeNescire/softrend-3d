@@ -30,7 +30,7 @@ To begin with, I wanted to have a minimal windowing system. I'm on a Mac at the 
 ## What you should know
 This tutorial series assumes you have a working knowledge of the [C programming language](https://en.wikipedia.org/wiki/C_%28programming_language%29) and a passing familiarity with basic math concepts like the [Cartesian coordinate system](https://en.wikipedia.org/wiki/Cartesian_coordinate_system), the [unit circle](https://en.wikipedia.org/wiki/Unit_circle) and the three [basic trigonometric functions](https://en.wikipedia.org/wiki/Trigonometric_functions#Right-angled_triangle_definitions). I'll go over the little bit of extra math needed such as vectors and matrices.
 
-Aside from the [C standard library](https://en.wikipedia.org/wiki/C_standard_library) we should only need Fenster and [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h), both of which are single source files with no external dependencies that we can include directly in our project directories without having to link to any external system libraries. I'll include a Makefile in the project source that should compile on Windows, Linux and Mac, but on Windows this might require some extra work. If you have Windows 10 you can install [Windows Subsystem for Linux (WSL)](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) which comes installed on Windows 11 by default and run `sudo apt install make`. Because we're not linking to any external system installed libraries there should be no added complexity for compiling with a visual IDE like Visual Studio.
+Aside from the [C standard library](https://en.wikipedia.org/wiki/C_standard_library) we should only need the [Fenster](https://github.com/zserge/fenster/blob/main/fenster.h) and [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h) header files, both of which are single source files with no external dependencies that we can include directly in our project directories without having to link to any external system libraries. I'll include a Makefile in the project source that should compile on Windows, Linux and Mac, but on Windows this might require some extra work. If you have Windows 10 you can install [Windows Subsystem for Linux (WSL)](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) which comes installed on Windows 11 by default and run `sudo apt install make`. Because we're not linking to any external system installed libraries there should be no added complexity for compiling with a visual IDE like Visual Studio.
 
 ## Downloading and compiling the Fenster library
 The simplest method is to just copy [fenster.h](https://github.com/zserge/fenster/blob/main/fenster.h) to your project directory. I like to store headers in the `/include` directory of my project and source files in `/src` which is what I will assume going forward. An example of a basic Fenster program is contained in the article listed above by the creator:
@@ -62,7 +62,7 @@ int main()
 }
 ```
 
-To compile, you simply run the command `cc -I include src/main.c -o softrend -framework cocoa` on mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile that you can download from the project source at the end of the lesson, and compile simply by typing `make`, and run the source with `./softrend`.
+To compile, you simply run the command `cc -I include src/main.c -o softrend -framework cocoa` on Mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile that you can download from the project source at the end of the lesson, and compile simply by typing `make`, and run the source with `./softrend`.
 
 You should see a 600x400 console window pop up with all black contents and a window title of "Hello, World!":
 
@@ -71,15 +71,15 @@ You should see a 600x400 console window pop up with all black contents and a win
 ## What's a framebuffer?
 This code should be mostly self-explanatory save for the `fenster.buf` field that takes an array of type `uint32_t`. Fenster passes this framebuffer array to the underlying operating system to write to the display.
 
-![Lesson 01 Buffer Array]({{ '/images/lesson_01_buffer_array.png' | relative_url }}){: width="100%"}
-
 A [framebuffer](https://en.wikipedia.org/wiki/Framebuffer) is a contiguous section of RAM that represents all of the pixels on the screen. Most modern applications use 32-bits for each pixel in either ARGB or RGBA order, with 1 byte per channel (R=red, G=green, B=blue, A=alpha or transparency). Often they will use structs with separate fields for each channel, but Fenster packs all color channels into a single 4 byte word. When converting between different libraries or formats, you need to be specific about the order of color channels.
+
+![Lesson 01 Buffer Array]({{ '/images/lesson_01_buffer_array.png' | relative_url }}){: width="100%"}
 
 The image above shows a 32-bit ARGB pixel in [little-endian](https://en.wikipedia.org/wiki/Endianness) notation.  The high order byte represents the alpha transparency mask in bits 24-31.  When all of the bits are set to 0xFF in hexadecimal (or 255 in decimal, 11111111 in binary) then the image is fully opaque. When the bits are set to 0 (0x00 in hex) the image is fully transparent. Bits 16-23 represent the red channel, bits 8-15 the green channel, and bits 0-7 the blue channel. It'll be a while before we need to deal with transparency, and in fact Fenster ignores the alpha byte when sending the buffer to the system, so the only transparency blending on our buffer will have to be taken care of by ourselves. For the time being, the alpha channel can be set to 0, or 0xFF, or anything in between, both our own code and Fenster (and the underlying window system) will ignore it.
 
-If we want to represent fully opaque red we'd use 0xFFFF0000, with bits 24-31 (the high order, most significant byte) representing the alpha value and the second byte the red value (fully red). We can define a constant at the top of the file next to our #defines:
-
 ### Filling the buffer
+
+If we want to represent fully opaque red we'd use 0xFFFF0000, with bits 24-31 (the high order, most significant byte) representing the alpha value and the second byte the red value (fully red). So the alpha channel is set to fully opaque (again, not that we're using it) as 0xFF and the red channel to full red (also 0xFF). We can define a constant at the top of the file next to our #defines:
 
 ```c
 #define HEIGHT 400
@@ -103,7 +103,9 @@ and then inside `main` we can fill the buffer once before the Fenster window loo
 ```
 
 ## The Fenster event loop
-Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will instantly open and close. The loop continuously draws the framebuffer and keeps the window open. If you put a timer in and track the loop speed you should see that it's capped around your monitor's refresh rate by the underlying window system compositor. We can use fenster_time, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
+Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will instantly open and close.
+
+The `while` loop calling `fenster_loop` continuously draws the framebuffer and keeps the window open. If you put a timer in and track the loop speed you should see that it's capped around your monitor's refresh rate by the underlying window system compositor. We can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
 
 ```c
     // Open a system window using the given window specifications
@@ -124,7 +126,7 @@ Like most windowing libraries, Fenster continuously loops over the system event 
     fenster_close(&window);
 ```
 
-On my system it starts out printing a very high number (~700ms) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that pixel value changes each loop:
+On my system the console starts out printing a very high number (~700ms) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that pixel value changes each loop:
 
 ```c
             secondStart = fenster_time();
