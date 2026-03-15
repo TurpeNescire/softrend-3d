@@ -2,7 +2,7 @@
 
 # Softrend: 3D Software Rendering from Scratch
 
-Softrend is a minimal 3D software rasterizer in C, from blank framebuffer to textured meshes. It uses the minimal multiplatform [Fenster](https://github.com/zserge/fenster/blob/main/fenster.h) single header library for windowing and write access to the underlying system framebuffer, and Sean Barret's [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h) for loading PNG texture files.
+Softrend is a minimal 3D software rasterizer in C using the multiplatform [Fenster](https://zserge.com/posts/fenster/) single header library for windowing and input and Sean Barret's [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h) for loading PNG texture files.
 
 Currently I am working through the existing codebase and creating individual lessons from it. [Click here](https://turpenescire.github.io/softrend-3d/lesson_01) for the first lesson. I have a nearly complete renderer already, and I'm currently writing lesson articles detailing how I implemented each of the following features:
 
@@ -20,4 +20,4 @@ Currently I am working through the existing codebase and creating individual les
 - Multi-threaded tile grid based parallelism
 - Particle system
 
-
+<video src="https://github.com/user-attachments/assets/c035b0a7-17c7-4377-ae0a-8c2cd311142a" controls width="100%"></video>
