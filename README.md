@@ -20,6 +20,6 @@ Softrend is a minimal 3D software rasterizer in C using the multiplatform [Fenst
 - Multi-threaded tile grid based parallelism
 - Particle system
 
-The clip below is taken from a current build of the engine using a scene from [JoeTheBox on itch.io](https://joethejunkbox.itch.io/psx-horror-graveyard-overlooking-sea). You can see most of the above features. I'm working on implementing a skybox, reflective water and fog, and additional lighting improvements.
+The clip below is taken from a current build of the engine using a scene from [JoeTheBox on itch.io](https://joethejunkbox.itch.io/psx-horror-graveyard-overlooking-sea). You can see most of the above features. I'm working on implementing a skybox, transparency, reflective water, fog, and additional lighting improvements.
 <video src="https://github.com/user-attachments/assets/c035b0a7-17c7-4377-ae0a-8c2cd311142a" controls width="100%"></video>
 
