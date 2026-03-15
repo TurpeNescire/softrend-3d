@@ -3,7 +3,7 @@ layout: lesson
 title: "SoftRend3D: Software Rendering from Scratch"
 ---
 
-![Lesson 01 banner]({{ '/images/lesson_01_banner.jpg' | relative_url }}){: width="100%"}
+![Softrend Banner]({{ '/images/softrend_banner.jpg' | relative_url }}){: width="100%"}
 
 # SoftRend3D: Software Rendering from Scratch
 

@@ -4,7 +4,7 @@ title: "Lesson 01: Setup"
 lesson_label: "Lesson 01"
 next_lesson: /lesson_02
 ---
-![Lesson 01 banner]({{ '/images/lesson_01_banner.png' | relative_url }}){: width="100%"}
+![Lesson 01 banner]({{ '/images/softrend_banner.png' | relative_url }}){: width="100%"}
 
 # Lesson 01: Purpose and Setup
 
