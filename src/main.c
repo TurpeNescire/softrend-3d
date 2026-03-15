@@ -35,7 +35,10 @@
 #define FPS    60               // Targeted frame rate (frequency in hz)
 #define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
 
-const uint32_t RED = 0xFFFF0000;
+#define ALPHA 3
+#define RED   2
+#define GREEN 1
+#define BLUE  0
 
 uint32_t buffer[WIDTH * HEIGHT];
 
@@ -58,7 +61,13 @@ int main()
         // print FPS once a second
         frameCount++; 
         if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
-            printf("fps: %d\n", frameCount);
+            const uint8_t *bufferByteArray = (const uint8_t *)buffer;
+            printf("fps: %d, A:%02x R:%02x G:%02x B:%02x\n",
+                    frameCount,
+                    bufferByteArray[ALPHA],
+                    bufferByteArray[RED],
+                    bufferByteArray[GREEN],
+                    bufferByteArray[BLUE]);
             frameCount  = 0;
             secondStart = fenster_time();
         }

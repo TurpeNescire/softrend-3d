@@ -103,9 +103,9 @@ and then inside `main` we can fill the buffer once before the Fenster window loo
 ```
 
 ## The Fenster event loop
-Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will instantly open and close.
+Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will never open on MacOS, while on Linux and Windows it should open but be unresponsive.
 
-The `while` loop calling `fenster_loop` continuously draws the framebuffer and keeps the window open. If you put a timer in and track the loop speed you should see that it's capped around your monitor's refresh rate by the underlying window system compositor. We can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
+The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration and keeps the window open. On macOS the window's draw rate is tied to the display refresh rate by the Cocoa compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
 
 ```c
     // Open a system window using the given window specifications
@@ -126,7 +126,9 @@ The `while` loop calling `fenster_loop` continuously draws the framebuffer and k
     fenster_close(&window);
 ```
 
-On my system the console starts out printing a very high number (~700ms) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that pixel value changes each loop:
+### Animating the buffer 
+
+On my system the console starts out printing a very high number (~700ms) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that the pixel value changes each loop:
 
 ```c
             secondStart = fenster_time();
@@ -140,10 +142,42 @@ On my system the console starts out printing a very high number (~700ms) then se
     fenster_close(&window);
 ```
 
-Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value.  At 0, each channel starts out black and ramps up to full intensity blue at 255 (each channel has 256 possible values, 0-255). After hitting 255, the pixel adds 1 to the next channel (green) and due to unsigned integer wraparound the blue byte starts over at 0 again ramping across the blue colors, but now with a tiny 1 bit shift towards green. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame. 
+Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value. Starting with all channels at 0 the pixel is black, and as the blue channel ramps up from 0 to 255 (each channel has 256 possible values) the pixel shifts from black to full intensity blue. After the blue byte hits 255, adding 1 causes it to wrap back to 0 and carry into the green byte — a side effect of unsigned integer arithmetic. The cycle then repeats across the blue range, but with green now incremented by 1/255 of its full intensity. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame, and ending in full intensity white at 0x00FFFFFF (or pixel[i] == 16,777,215) before wrapping back to the start of the RGB color values at RGB all set to 0. However it would not reset the pixel value itself back 0, but would continue looping with the next value at 0x01000000 with an alpha value of 1 and all other channels reset to 0 (full black).
 
-### Capping FPS
-If we want to limit the frame time to a specific value, we can add a few lines of code. We add a few \#defines at the top of the file:
+### Inspecting the pixel channel values
+We're changing the value of each 4 byte pixel by 1 each loop, and we've talked about what different bits in that pixel value mean, but it can be helpful to see it practice. If we're passing color information in ARGB little-endian order as we discussed, we can index into each channel and show its value during the loop. As with fps, it'll be less obnoxious if we only do it once a second.
+
+At the top of the file after the current \#defines add:
+
+```c
+#define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
+
+#define ALPHA 3
+#define RED   2
+#define GREEN 1
+#define BLUE  0
+```
+
+In the fps print loop that fires every second add:
+
+```c
+        if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
+            const uint8_t *bufferByteArray = (const uint8_t *)buffer;
+            printf("fps: %d, A:%02x R:%02x G:%02x B:%02x\n",
+                    frameCount,
+                    bufferByteArray[ALPHA],
+                    bufferByteArray[RED],
+                    bufferByteArray[GREEN],
+                    bufferByteArray[BLUE]);
+            frameCount  = 0;
+            secondStart = fenster_time();
+        }
+```
+
+You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
+
+### Limiting Frame Rate (FPS)
+If we want to limit the frame time to a specific desired value, we can add a few lines of code. We add a few \#defines at the top of the file:
 
 ```c
 #define HEIGHT 400
@@ -177,6 +211,6 @@ and at the end of the loop:
 
 As a point of curiosity, if we were taking 39 hours before to draw all possible RBG values we'd now take around 78 hours to iterate over all the colors values. Worth noting that the alpha value is ignored, so it actually would take us around 2.27 years before the alpha channel wrapped back to 0 for each pixel.
 
-## Source
+## Github Source Commit
 [Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/07b1e965b231eb930a9f89b56a5b6f81371fde2d)
 
