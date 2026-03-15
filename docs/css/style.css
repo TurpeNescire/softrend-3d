@@ -32,6 +32,16 @@ h1 { font-size: 28px; font-weight: 500; margin-bottom: 0.5rem; }
 h2 { font-size: 18px; font-weight: 500; margin: 2rem 0 0.75rem; }
 h3 { font-size: 15px; font-weight: 500; margin: 1.5rem 0 0.5rem; }
 
+main ul {
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+main ul ul {
+  padding-left: 1.5rem;
+  list-style-type: circle;
+}
+
 nav.lesson-nav {
   display: flex;
   align-items: center;

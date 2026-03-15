@@ -16,7 +16,7 @@ next_lesson: /lesson_02
   - [Blitting or swapping the buffer](#blitting-or-swapping-the-buffer)
   - [Animating the buffer](#animating-the-buffer)
   - [Inspecting the pixel channel values](#inspecting-the-pixel-channel-values)
-  - [Limiting Frame Rate (FPS)](#limiting-frame-rate-fps)
+- [Limiting Frame Rate (FPS)](#limiting-frame-rate-fps)
 
 # Lesson 01: Purpose and Setup
 
@@ -189,7 +189,7 @@ In the fps print loop that fires every second add:
 
 You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
 
-### Limiting Frame Rate (FPS)
+## Limiting Frame Rate (FPS)
 If we want to limit the frame time to a specific desired value, we can add a few lines of code. We add a few \#defines at the top of the file:
 
 ```c
