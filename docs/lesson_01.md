@@ -216,5 +216,5 @@ and at the end of the loop:
 As a point of curiosity, if we were taking 39 hours before to draw all possible RBG values we'd now take around 78 hours to iterate over all the colors values. Worth noting that the alpha value is ignored, so it actually would take us around 2.27 years before the alpha channel wrapped back to 0 for each pixel.
 
 ## Github Source Commit
-[Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/2a47d6996ae2d84166c0f7e36a0f475e715f2bc8)
+[Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/f66f63189ce5ccb2f95687dccc892918152e248d)
 
