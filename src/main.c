@@ -61,6 +61,7 @@ int main()
         // print FPS once a second
         frameCount++; 
         if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
+            // bufferByteArray points to the first byte (the blue channel) of the first element of buffer
             const uint8_t *bufferByteArray = (const uint8_t *)buffer;
             printf("fps: %d, A:%02x R:%02x G:%02x B:%02x\n",
                     frameCount,

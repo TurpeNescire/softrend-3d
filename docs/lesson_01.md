@@ -10,13 +10,15 @@ next_lesson: /lesson_02
 - [What's the goal?](#whats-the-goal)
 - [What you should know](#what-you-should-know)
 - [Downloading and compiling the Fenster library](#downloading-and-compiling-the-fenster-library)
-- [What's a framebuffer?](#whats-a-framebuffer)
+- [Drawing to the display](#drawing-to-the-display)
+  - [What's a framebuffer?](#whats-a-framebuffer)
   - [Filling the buffer](#filling-the-buffer)
   - [The Fenster event loop](#the-fenster-event-loop)
   - [Blitting or swapping the buffer](#blitting-or-swapping-the-buffer)
   - [Animating the buffer](#animating-the-buffer)
   - [Inspecting the pixel channel values](#inspecting-the-pixel-channel-values)
 - [Limiting Frame Rate (FPS)](#limiting-frame-rate-fps)
+
 
 # Lesson 01: Purpose and Setup
 
@@ -66,7 +68,9 @@ You should see a 600x400 window pop up with all black contents and a window titl
 
 ![Lesson 01 Fenster Window]({{ '/images/lesson_01_fenster_window.png' | relative_url }}){: width="100%"}
 
-## What's a framebuffer?
+## Drawing to the display
+
+### What's a framebuffer?
 This code should be mostly self-explanatory save for the `fenster.buf` field that takes an array of type `uint32_t`. Fenster passes this framebuffer array to the underlying operating system to write to the display.
 
 A [framebuffer](https://en.wikipedia.org/wiki/Framebuffer) is a contiguous section of RAM that represents all of the pixels on the screen. Most modern applications use 32-bits for each pixel in either ARGB or RGBA order, with 1 byte per channel (R=red, G=green, B=blue, A=alpha or transparency). Often they will use structs with separate fields for each channel, but Fenster packs all color channels into a single 4 byte word. When converting between different libraries or formats, you need to be specific about the order of color channels.
@@ -103,7 +107,7 @@ and then inside `main` we can fill the buffer once before the Fenster window loo
 ### The Fenster event loop
 Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will never open on macOS, while on Linux and Windows it should open but be unresponsive.
 
-The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration and keeps the window open. On macOS the window's draw rate is tied to the display refresh rate by the Quartz compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
+The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration. On macOS the window's draw rate is tied to the display refresh rate by the Quartz compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
 
 ```c
     // Open a system window using the given window specifications
@@ -156,7 +160,7 @@ const uint32_t RED = 0xFFFF0000; // ← remove
 ```
 
 ### Inspecting the pixel channel values
-We're changing the value of each 4 byte pixel by 1 each loop, and we've talked about what different bits in that pixel value mean, but it can be helpful to see it practice. If we're passing color information in ARGB little-endian order as we discussed, we can index into each channel and show its value during the loop. As with fps, it'll be less obnoxious if we only do it once a second.
+We're changing the value of each 4 byte pixel by 1 each loop, and we've talked about what different bits in that pixel value mean, but it can be helpful to see it in practice. If we're passing color information in ARGB little-endian order as we discussed, we can index into each channel and show its value during the loop. As with fps, it'll be less obnoxious if we only do it once a second.
 
 At the top of the file after the current \#defines add:
 
