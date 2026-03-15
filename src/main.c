@@ -32,7 +32,7 @@
 #define WIDTH  600
 #define HEIGHT 400
 
-#define FPS    60               // Targeted frame rate (frequency in hz)
+#define FPS        60           // Targeted frame rate (frequency in hz)
 #define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
 
 #define ALPHA 3

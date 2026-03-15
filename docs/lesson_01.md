@@ -9,23 +9,9 @@ next_lesson: /lesson_02
 # Lesson 01: Purpose and Setup
 
 ## What's the goal?
-This is a project to teach myself software 3D rendering techniques by building a triangle rasterizer entirely from scratch. Here are some of the current features that these docs will cover implementing:
+As mentioned in the repo README, this is a project to teach myself software 3D rendering techniques by building a 3D triangle rasterizer entirely from scratch. To begin with, I wanted to have a minimal windowing system. I'm on a Mac at the moment, but don't know Objective-C which Apple uses for its system libraries and finding out how to write a framebuffer to the screen was proving to be too obnoxious. I found [Fenster](https://zserge.com/posts/fenster/) to be the most minimal framebuffer library, offering only a cross-platform window, framebuffer, mouse and keyboard handling. At around 300 lines it's very readable and mirrors my desire to avoid the abstractions of 3D APIs by doing the same thing for drawing pixels to the screen. For the minimal needs of this project, Fenster is fine, but if you want to try to make a more full-featured application I would recommend looking at [Raylib](https://www.raylib.com/) or [SDL](https://wiki.libsdl.org/SDL3/FrontPage).
 
-- OBJ + MTL model loading with multi-mesh support and UV texture mapping
-- MVP transform pipeline: local → world → camera → screen
-- Near-plane clipping via Sutherland-Hodgman
-- Depth buffering
-- Backface culling and screen-space bounding box culling
-- Perspective-correct UV interpolation
-- Programmable vertex and fragment shaders
-- Lambert, Gouraud, Phong and textured shaders
-- CPU-generated mipmapping (12 levels)
-- Bilinear filtering
-- Shadow mapping
-- Multi-threaded tile grid based parallelism
-- Particle system
-
-To begin with, I wanted to have a minimal windowing system. I'm on a Mac at the moment, but don't know Objective-C which Apple uses for its system libraries, so finding out how to write a framebuffer to the screen was beyond me. I found [Fenster](https://zserge.com/posts/fenster/) to be the most minimal framebuffer library, offering only a cross-platform window, framebuffer, mouse and keyboard handling. At around 300 lines it's very readable and mirrors my desire to avoid the abstractions of 3D APIs by doing the same thing for drawing pixels to the screen.
+Aside from teaching myrself, I find it enjoyable to share my discoveries with others and to help more clearly order and document my thought process. I'll try to break each tutorial lesson into small steps. I'll try to guide you to write your own solution instead of copying mine or asking an AI to code it. The only way to learn something is to struggle with it. Turning to quick answers robs us of the ability to grow our thinking and learning ability.
 
 ## What you should know
 This tutorial series assumes you have a working knowledge of the [C programming language](https://en.wikipedia.org/wiki/C_%28programming_language%29) and a passing familiarity with basic math concepts like the [Cartesian coordinate system](https://en.wikipedia.org/wiki/Cartesian_coordinate_system), the [unit circle](https://en.wikipedia.org/wiki/Unit_circle) and the three [basic trigonometric functions](https://en.wikipedia.org/wiki/Trigonometric_functions#Right-angled_triangle_definitions). I'll go over the little bit of extra math needed such as vectors and matrices.
@@ -62,9 +48,9 @@ int main()
 }
 ```
 
-To compile, you simply run the command `cc -I include src/main.c -o softrend -framework cocoa` on Mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile that you can download from the project source at the end of the lesson, and compile simply by typing `make`, and run the source with `./softrend`.
+To compile, run the command `cc -I include src/main.c -o softrend -framework cocoa` on Mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile that you can download from the project source at the end of the lesson, and compile by typing `make` with the project Makefile in the root directory, and run the binary with `./softrend`.
 
-You should see a 600x400 console window pop up with all black contents and a window title of "Hello, World!":
+You should see a 600x400 window pop up with all black contents and a window title of "Hello, World!":
 
 ![Lesson 01 Fenster Window]({{ '/images/lesson_01_fenster_window.png' | relative_url }}){: width="100%"}
 
@@ -143,6 +129,12 @@ On my system the console starts out printing a very high number (~700ms) then se
 ```
 
 Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value. Starting with all channels at 0 the pixel is black, and as the blue channel ramps up from 0 to 255 (each channel has 256 possible values) the pixel shifts from black to full intensity blue. After the blue byte hits 255, adding 1 causes it to wrap back to 0 and carry into the green byte — a side effect of unsigned integer arithmetic. The cycle then repeats across the blue range, but with green now incremented by 1/255 of its full intensity. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame, and ending in full intensity white at 0x00FFFFFF (or pixel[i] == 16,777,215) before wrapping back to the start of the RGB color values at RGB all set to 0. However it would not reset the pixel value itself back 0, but would continue looping with the next value at 0x01000000 with an alpha value of 1 and all other channels reset to 0 (full black).
+
+You can remove the RED declaration at the top now as we're iterating over pixel values starting at the blue channel, we'll be needing the RED identifier for something else later.
+
+```c
+const uint32_t RED = 0xFFFF0000; // ← remove
+```
 
 ### Inspecting the pixel channel values
 We're changing the value of each 4 byte pixel by 1 each loop, and we've talked about what different bits in that pixel value mean, but it can be helpful to see it practice. If we're passing color information in ARGB little-endian order as we discussed, we can index into each channel and show its value during the loop. As with fps, it'll be less obnoxious if we only do it once a second.
