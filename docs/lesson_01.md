@@ -6,6 +6,18 @@ next_lesson: /lesson_02
 ---
 ![Lesson 01 banner]({{ '/images/softrend_banner.png' | relative_url }}){: width="100%"}
 
+## Contents
+- [What's the goal?](#whats-the-goal)
+- [What you should know](#what-you-should-know)
+- [Downloading and compiling the Fenster library](#downloading-and-compiling-the-fenster-library)
+- [What's a framebuffer?](#whats-a-framebuffer)
+  - [Filling the buffer](#filling-the-buffer)
+  - [The Fenster event loop](#the-fenster-event-loop)
+  - [Blitting or swapping the buffer](#blitting-or-swapping-the-buffer)
+  - [Animating the buffer](#animating-the-buffer)
+  - [Inspecting the pixel channel values](#inspecting-the-pixel-channel-values)
+  - [Limiting Frame Rate (FPS)](#limiting-frame-rate-fps)
+
 # Lesson 01: Purpose and Setup
 
 ## What's the goal?
@@ -88,10 +100,10 @@ and then inside `main` we can fill the buffer once before the Fenster window loo
     // Open a system window using the given window specifications
 ```
 
-## The Fenster event loop
+### The Fenster event loop
 Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will never open on macOS, while on Linux and Windows it should open but be unresponsive.
 
-The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration and keeps the window open. On macOS the window's draw rate is tied to the display refresh rate by the Cocoa compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
+The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration and keeps the window open. On macOS the window's draw rate is tied to the display refresh rate by the Quartz compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
 
 ```c
     // Open a system window using the given window specifications
@@ -115,13 +127,13 @@ The while loop calling `fenster_loop()` triggers a framebuffer redraw each itera
 ### Blitting or swapping the buffer
 If you're curious about how our buffer gets drawn to the display, read on, though it's not necessary to remember these details other than to satisfy your curiosity.
 
-In old school terms, copying our memory buffer to the display system's memory is called blitting ("block transfer" or BLT). The buffer being rendered to was known as the back buffer while the completed buffer being shown was the front buffer, and the user called a swap/present function that swapped the buffers at the end of each frame. In modern operating systems the underlying system compositor (Quartz on macOS, DWM on Windows, X or Wayland on Linux, though Fenster only supports X) hides these details from us, except in specific circumstances, like using the Metal API on macOS to bypass the compositor in full screen mode to render directly to the display and reduce any overhead involving the compositor, or Windows using DirectX in full screen mode to similarly bypass the DWM compositor. This is why you see the screen flash to black and pause when switching out of full-screen mode in games on Windows, it's the DWM compositor being reinitialized to take over drawing to the screen.
+In old school terms, copying our memory buffer to the display system's memory is called blitting, taken from "Block Level Image Transfer", aka BitBLT). The buffer being rendered to was known as the back buffer while the completed buffer being shown was the front buffer, and the user called a swap/present function that swapped the buffers at the end of each frame. In modern operating systems the underlying system compositor (Quartz on macOS, DWM on Windows, X or Wayland on Linux, though Fenster only supports X11) hides these details from us, except in specific circumstances, like using the Metal API on macOS to bypass the compositor in full screen mode to render directly to the display and reduce any overhead involving the compositor, or Windows using DirectX in full screen mode to similarly bypass the DWM compositor. This is why you see the screen flash to black and pause when switching out of full-screen mode in games on Windows, it's the DWM compositor being reinitialized to take over drawing to the screen.
 
 There is no need to explicitly call or register a drawing function to present our buffer to the system, Fenster handles that behind the scenes. On macOS it is done through `fenster_open(&window)` registering a function called `fenster_draw_rect` which macOS calls automatically whenever the display needs redrawing which is what `fenster_loop` does, marking the view as needing a redraw. On Windows, `fenster_loop` calls `InvalidateRect` which triggers a `WM_PAINT` message handled by `fenster_wndproc`, which uses GDI's `SetDIBitsToDevice` to copy the buffer to the window's device context and `BitBlt` to blit it to the screen. Linux has the most elegant method where `fenster_loop` calls `XPutImage` directly each frame with the buffer pointer, and the X server handles refreshing the display.
 
 ### Animating the buffer 
 
-On my system the console starts out printing a very high number (~700ms) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that the pixel value changes each loop:
+On my system the console starts out printing a very high number (~700 fps) then settles around 120 fps, the refresh rate of my display. We filled the framebuffer `window.buf` with red pixels before calling the render loop. We can also change the buffer's pixels inside the loop. Simply moving the `for` loop inside the `fenster_loop` doesn't change what appears on the screen, it just means the buffer is getting overwritten with the same pixels each frame. We could change it so that the pixel value changes each loop:
 
 ```c
             secondStart = fenster_time();
@@ -135,9 +147,9 @@ On my system the console starts out printing a very high number (~700ms) then se
     fenster_close(&window);
 ```
 
-Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value. Starting with all channels at 0 the pixel is black, and as the blue channel ramps up from 0 to 255 (each channel has 256 possible values) the pixel shifts from black to full intensity blue. After the blue byte hits 255, adding 1 causes it to wrap back to 0 and carry into the green byte — a side effect of unsigned integer arithmetic. The cycle then repeats across the blue range, but with green now incremented by 1/255 of its full intensity. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame, and ending in full intensity white at 0x00FFFFFF (or pixel[i] == 16,777,215) before wrapping back to the start of the RGB color values at RGB all set to 0. However it would not reset the pixel value itself back 0, but would continue looping with the next value at 0x01000000 with an alpha value of 1 and all other channels reset to 0 (full black).
+Because we declared the `buffer` array globally it is 0 initialized and this code will add 1 to each pixel value. Starting with all channels at 0 the pixel is black, and as the blue channel ramps up from 0 to 255 the pixel shifts from black to full intensity blue. After the blue byte hits 255, adding 1 causes it to wrap back to 0 and carry into the green byte — a side effect of unsigned integer arithmetic wraparound. The cycle then repeats across the blue range, but with green now incremented by 1/255 of its full intensity. If we let the program run at 120 fps it would take approximately 39 hours to cycle through all 16,777,216 possible RGB values — one per frame, and ending in full intensity white at 0x00FFFFFF (when the pixel values reach 16,777,215) before wrapping back to the start of the RGB color values at RGB all set to 0. However it would not reset the pixel value itself back 0, but would continue looping with the next value at 0x01000000 with an alpha value of 1 and all other channels reset to 0 (full black).
 
-You can remove the RED declaration at the top now as we're iterating over pixel values starting at the blue channel, we'll be needing the RED identifier for something else later.
+You can remove the RED declaration at the top now as we're iterating over pixel values starting at 0 - starting with the blue blue channel bits - we'll be needing the RED identifier for something else later.
 
 ```c
 const uint32_t RED = 0xFFFF0000; // ← remove
@@ -149,12 +161,14 @@ We're changing the value of each 4 byte pixel by 1 each loop, and we've talked a
 At the top of the file after the current \#defines add:
 
 ```c
-#define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
+#define HEIGHT 400
 
 #define ALPHA 3
 #define RED   2
 #define GREEN 1
 #define BLUE  0
+
+uint32_t buffer[WIDTH * HEIGHT];
 ```
 
 In the fps print loop that fires every second add:
