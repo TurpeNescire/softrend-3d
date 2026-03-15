@@ -17,7 +17,7 @@ Aside from teaching myself, I find it enjoyable to share my discoveries with oth
 ## What you should know
 This tutorial series assumes you have a working knowledge of the [C programming language](https://en.wikipedia.org/wiki/C_%28programming_language%29) and a passing familiarity with basic math concepts like the [Cartesian coordinate system](https://en.wikipedia.org/wiki/Cartesian_coordinate_system), the [unit circle](https://en.wikipedia.org/wiki/Unit_circle) and the three [basic trigonometric functions](https://en.wikipedia.org/wiki/Trigonometric_functions#Right-angled_triangle_definitions). I'll go over the little bit of extra math needed such as vectors and matrices.
 
-Aside from the [C standard library](https://en.wikipedia.org/wiki/C_standard_library) we should only need the [Fenster](https://github.com/zserge/fenster/blob/main/fenster.h) and [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h) header files, both of which are single source files with no external dependencies that we can include directly in our project directories without having to link to any external system libraries. I'll include a Makefile in the project source that should compile on Windows, Linux and Mac, but on Windows this might require some extra work. If you have Windows 10 you can install [Windows Subsystem for Linux (WSL)](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) which comes installed on Windows 11 by default and run `sudo apt install make`. Because we're not linking to any external system installed libraries there should be no added complexity for compiling with a visual IDE like Visual Studio.
+Aside from the [C standard library](https://en.wikipedia.org/wiki/C_standard_library) we should only need the [Fenster](https://github.com/zserge/fenster/blob/main/fenster.h) and [STB Image](https://github.com/nothings/stb/blob/master/stb_image.h) header files, both of which are single source files with no external dependencies that we can include directly in our project directories without having to link to any external system libraries. I'll include a Makefile in the project source that should compile on Windows, Linux and Mac, but on Windows this might require some extra work. If you have Windows 10 you can install [Windows Subsystem for Linux (WSL)](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux) which comes installed on Windows 11 by default and run `sudo apt install make`. Because we're not linking to any external system installed libraries there should be no added complexity for compiling with a visual IDE like Visual Studio if you're uncomfortable using a terminal.
 
 ## Downloading and compiling the Fenster library
 The simplest method is to just copy [fenster.h](https://github.com/zserge/fenster/blob/main/fenster.h) to your project directory. I like to store headers in the `/include` directory of my project and source files in `/src` which is what I will assume going forward. This example of a basic Fenster program is based on the article listed above by the creator:
@@ -179,6 +179,31 @@ In the fps print loop that fires every second add:
 ```
 
 You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
+
+As an exercise, how would you increment one specific color channel instead of starting at pixel values of 0 and incrementing the blue values at the start?
+
+<details>
+<summary>Click for my solution</summary>
+We can just steal our bufferByteArray channel accessing code and use it in the buffer fill loop:
+
+<pre><code class="language-c">        for (int i = 0; i &lt; WIDTH * HEIGHT; i++) {
+            uint8_t *bufferByteArray = (uint8_t *)&amp;buffer[i];
+            bufferByteArray[GREEN] += 1;
+            // buffer[i] += 1;
+        }
+</code></pre>
+
+or bonus points for the cleaner option:
+
+<pre><code class="language-c">        for (int i = 0; i &lt; WIDTH * HEIGHT; i++) {
+            buffer[i] += 0x00000100; // increment green channel directly
+            // buffer[i] += 1;
+        }
+</code></pre>
+
+or you could just add 256 decimal to buffer[i].
+
+</details>
 
 ## Limiting Frame Rate (FPS)
 If we want to limit the frame time to a specific desired value, we can add a few lines of code. We add a few \#defines at the top of the file:
