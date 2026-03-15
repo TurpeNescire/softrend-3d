@@ -1,4 +1,4 @@
-![Softrend Banner]({{ '/images/softrend_banner.png' | relative_url }}){: width="100%"}
+![Softrend Banner](docs/images/softrend_banner.png)
 
 # Softrend: 3D Software Rendering from Scratch
 
