@@ -33,11 +33,22 @@
     </div>
   </nav>
 
-  <main>
-    <div class="accent-rule"></div>
-    <div class="lesson-label">{{ page.lesson_label | default: "" }}</div>
-    {{ content }}
-  </main>
+  <!-- page-layout: flex row on wide screens, column on mobile -->
+  <div class="page-layout">
+
+    <!-- toc-sidebar: auto-populated by toc-build.js below -->
+    <nav class="toc-sidebar">
+      <div class="toc-title">Contents</div>
+      <ul id="toc-list"></ul>
+    </nav>
+
+    <main>
+      <div class="accent-rule"></div>
+      <div class="lesson-label">{{ page.lesson_label | default: "" }}</div>
+      {{ content }}
+    </main>
+
+  </div>
 
   <nav class="bottom-nav">
     <a href="{{ '/' | relative_url }}">↑ Contents</a>
@@ -53,5 +64,28 @@
   </nav>
 
   <script src="{{ '/js/theme.js' | relative_url }}"></script>
+
+  <!-- Build TOC from heading ids that kramdown generates automatically -->
+  <script>
+    (function () {
+      var headings = document.querySelectorAll('main h2, main h3');
+      var tocList  = document.getElementById('toc-list');
+      var sidebar  = document.querySelector('.toc-sidebar');
+      if (!tocList || headings.length === 0) {
+        if (sidebar) sidebar.style.display = 'none'; // hide if no headings
+        return;
+      }
+      headings.forEach(function (h) {
+        if (!h.id) return;
+        var li = document.createElement('li');
+        li.className = h.tagName === 'H3' ? 'toc-h3' : 'toc-h2'; // indent h3 via CSS
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        li.appendChild(a);
+        tocList.appendChild(li);
+      });
+    })();
+  </script>
 </body>
 </html>
