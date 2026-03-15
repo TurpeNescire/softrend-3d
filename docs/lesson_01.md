@@ -6,19 +6,6 @@ next_lesson: /lesson_02
 ---
 ![Lesson 01 banner]({{ '/images/softrend_banner.png' | relative_url }}){: width="100%"}
 
-## Contents
-- [What's the goal?](#whats-the-goal)
-- [What you should know](#what-you-should-know)
-- [Downloading and compiling the Fenster library](#downloading-and-compiling-the-fenster-library)
-- [Drawing to the display](#drawing-to-the-display)
-  - [What's a framebuffer?](#whats-a-framebuffer)
-  - [Filling the buffer](#filling-the-buffer)
-  - [The Fenster event loop](#the-fenster-event-loop)
-  - [Blitting or swapping the buffer](#blitting-or-swapping-the-buffer)
-  - [Animating the buffer](#animating-the-buffer)
-  - [Inspecting the pixel channel values](#inspecting-the-pixel-channel-values)
-- [Limiting Frame Rate (FPS)](#limiting-frame-rate-fps)
-
 
 # Lesson 01: Purpose and Setup
 

@@ -9,7 +9,6 @@ body {
 }
 
 main {
-  /* flex child — fills remaining space up to 740px */
   flex: 1;
   max-width: 740px;
   min-width: 0; /* prevents flex overflow on narrow screens */
@@ -34,19 +33,36 @@ h1 { font-size: 28px; font-weight: 500; margin-bottom: 0.5rem; }
 h2 { font-size: 18px; font-weight: 500; margin: 2rem 0 0.75rem; }
 h3 { font-size: 15px; font-weight: 500; margin: 1.5rem 0 0.5rem; }
 
+main ul {
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+main ul ul {
+  padding-left: 1.5rem;
+  list-style-type: circle;
+}
+
+/* ── Layout configuration variables ───────────────────── */
+:root {
+  --toc-width: 20%;           /* sidebar TOC width as % of page */
+  --layout-max-width: 1200px; /* maximum total page width */
+  --sidebar-breakpoint: 768px;/* below this: TOC stacks above content */
+}
+
 /* ── Page layout: TOC sidebar + main content ──────────── */
 .page-layout {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
-  max-width: 980px; /* 200px TOC + 40px gap + 740px content */
+  max-width: var(--layout-max-width);
   margin: 0 auto;
 }
 
 .toc-sidebar {
-  width: 200px;
+  width: var(--toc-width);
   flex-shrink: 0;
-  padding: 2rem 1.5rem 2rem 1.5rem;
+  padding: 2rem 1rem 2rem 1.5rem;
   position: sticky;
   top: 1rem;
   align-self: flex-start;
@@ -68,8 +84,8 @@ h3 { font-size: 15px; font-weight: 500; margin: 1.5rem 0 0.5rem; }
 #toc-list li { margin: 0.25rem 0; }
 #toc-list li.toc-h3 { padding-left: 0.75rem; }
 
-/* On narrow screens: stack TOC above content */
-@media (max-width: 1000px) {
+/* Below breakpoint: stack TOC above content */
+@media (max-width: 768px) {
   .page-layout { flex-direction: column; }
   .toc-sidebar {
     position: static;
@@ -80,21 +96,11 @@ h3 { font-size: 15px; font-weight: 500; margin: 1.5rem 0 0.5rem; }
   }
 }
 
-main ul {
-  padding-left: 1.5rem;
-  list-style-type: disc;
-}
-
-main ul ul {
-  padding-left: 1.5rem;
-  list-style-type: circle;
-}
-
 nav.lesson-nav {
   display: flex;
   align-items: center;
   gap: 1.25rem;
-  max-width: 980px;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
   padding: 0.75rem 1.5rem;
   font-size: 13px;
@@ -106,7 +112,7 @@ nav.lesson-nav .nav-links { margin-left: auto; display: flex; gap: 1rem; }
 nav.bottom-nav {
   display: flex;
   justify-content: space-between;
-  max-width: 980px;
+  max-width: var(--layout-max-width);
   margin: 3rem auto 0;
   padding: 1rem 1.5rem 0;
   font-size: 13px;
@@ -269,27 +275,24 @@ body.theme-editorial .highlight .p  { color: #2C2C2A } /* Punctuation */
 body.theme-editorial .highlight .mi { color: #1a5c8a } /* Integer — dark blue */
 body.theme-editorial .highlight .mf { color: #1a5c8a } /* Float */
 
-/* ── TOC sidebar theme colors ─────────────────────────── */
-body.theme-dark .toc-sidebar { color: #6c6f93; }
-body.theme-dark .toc-title   { color: #a78bfa; }
-body.theme-dark #toc-list a  { color: #a78bfa; text-decoration: none; }
-body.theme-dark #toc-list a:hover { color: #c4b5fd; }
-body.theme-dark .toc-sidebar { border-color: #2a2a4a; }
 
-body.theme-terminal .toc-sidebar { color: #3fb950; }
+/* ── TOC sidebar theme colors ─────────────────────────── */
+body.theme-dark .toc-sidebar   { border-color: #2a2a4a; }
+body.theme-dark .toc-title     { color: #a78bfa; }
+body.theme-dark #toc-list a    { color: #a78bfa; text-decoration: none; }
+body.theme-dark #toc-list a:hover { color: #c4b5fd; }
+
+body.theme-terminal .toc-sidebar { border-color: #21262d; }
 body.theme-terminal .toc-title   { color: #3fb950; }
 body.theme-terminal #toc-list a  { color: #58a6ff; text-decoration: none; }
 body.theme-terminal #toc-list a:hover { color: #79c0ff; }
-body.theme-terminal .toc-sidebar { border-color: #21262d; }
 
-body.theme-docs .toc-sidebar { color: #666; }
-body.theme-docs .toc-title   { color: #185FA5; }
-body.theme-docs #toc-list a  { color: #185FA5; text-decoration: none; }
+body.theme-docs .toc-sidebar   { border-color: #e0e0e0; }
+body.theme-docs .toc-title     { color: #185FA5; }
+body.theme-docs #toc-list a    { color: #185FA5; text-decoration: none; }
 body.theme-docs #toc-list a:hover { color: #0d3d6e; }
-body.theme-docs .toc-sidebar { border-color: #e0e0e0; }
 
-body.theme-editorial .toc-sidebar { color: #888780; font-family: Georgia, serif; }
+body.theme-editorial .toc-sidebar { border-color: #dddbd5; font-family: Georgia, serif; }
 body.theme-editorial .toc-title   { color: #993C1D; }
 body.theme-editorial #toc-list a  { color: #993C1D; text-decoration: none; }
 body.theme-editorial #toc-list a:hover { color: #5F5E5A; }
-body.theme-editorial .toc-sidebar { border-color: #dddbd5; }
