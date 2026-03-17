@@ -3,7 +3,7 @@
  * https://github.com/TurpeNescire/softrend-3d                                *
  * https://turpenescire.github.io/softrend-3d                                 *
  *                                                                            *
- * v0.1.0                                                                     *
+ * v0.1.1                                                                     *
  *                                                                            *
  * MIT License                                                                *
  *                                                                            *
@@ -35,12 +35,8 @@
 #define FPS        60           // Targeted frame rate (frequency in hz)
 #define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
 
-#define ALPHA 3
-#define RED   2
-#define GREEN 1
-#define BLUE  0
-
 uint32_t buffer[WIDTH * HEIGHT];
+
 
 int main()
 {
@@ -50,7 +46,6 @@ int main()
         .height = HEIGHT,
         .buf    = buffer
     };
-
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
@@ -61,20 +56,9 @@ int main()
         // print FPS once a second
         frameCount++; 
         if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
-            // bufferByteArray points to the first byte (the blue channel) of the first element of buffer
-            const uint8_t *bufferByteArray = (const uint8_t *)buffer;
-            printf("fps: %d, A:%02x R:%02x G:%02x B:%02x\n",
-                    frameCount,
-                    bufferByteArray[ALPHA],
-                    bufferByteArray[RED],
-                    bufferByteArray[GREEN],
-                    bufferByteArray[BLUE]);
+            printf("fps: %d\n", frameCount);
             frameCount  = 0;
             secondStart = fenster_time();
-        }
-
-        for (int i = 0; i < WIDTH * HEIGHT; i++) {
-            buffer[i] += 1;
         }
 
         // sleep until we reach desired FRAME_TIME 
@@ -85,5 +69,4 @@ int main()
 
     fenster_close(&window);
 }
-
 

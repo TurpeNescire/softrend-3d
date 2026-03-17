@@ -1,5 +1,6 @@
 # project specific
 softrend
+temp/
 
 # macOS
 .DS_Store

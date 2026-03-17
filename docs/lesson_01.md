@@ -120,7 +120,8 @@ If you're curious about how our buffer gets drawn to the display, read on, thoug
 
 In old school terms, copying our memory buffer to the display system's memory is called blitting, taken from "Block Level Image Transfer", aka BitBLT). The buffer being rendered to was known as the back buffer while the completed buffer being shown was the front buffer, and the user called a swap/present function that swapped the buffers at the end of each frame. In modern operating systems the underlying system compositor (Quartz on macOS, DWM on Windows, X or Wayland on Linux, though Fenster only supports X11) hides these details from us, except in specific circumstances, like using the Metal API on macOS to bypass the compositor in full screen mode to render directly to the display and reduce any overhead involving the compositor, or Windows using DirectX in full screen mode to similarly bypass the DWM compositor. This is why you see the screen flash to black and pause when switching out of full-screen mode in games on Windows, it's the DWM compositor being reinitialized to take over drawing to the screen.
 
-There is no need to explicitly call or register a drawing function to present our buffer to the system, Fenster handles that behind the scenes. On macOS it is done through `fenster_open(&window)` registering a function called `fenster_draw_rect` which macOS calls automatically whenever the display needs redrawing which is what `fenster_loop` does, marking the view as needing a redraw. On Windows, `fenster_loop` calls `InvalidateRect` which triggers a `WM_PAINT` message handled by `fenster_wndproc`, which uses GDI's `SetDIBitsToDevice` to copy the buffer to the window's device context and `BitBlt` to blit it to the screen. Linux has the most elegant method where `fenster_loop` calls `XPutImage` directly each frame with the buffer pointer, and the X server handles refreshing the display.
+
+There is no need to explicitly call or register a drawing function to present our buffer to the system, Fenster handles that behind the scenes. If you'd like to read the author's breakdown of how Fenster communicates with the underlying compositor to display graphics for each platform, [read on](https://zserge.com/posts/fenster/#graphics).
 
 ### Animating the buffer 
 
@@ -178,8 +179,6 @@ In the fps print loop that fires every second add:
         }
 ```
 
-You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
-
 As an exercise, how would you increment one specific color channel instead of starting at pixel values of 0 and incrementing the blue values at the start?
 
 <details>
@@ -193,7 +192,7 @@ We can just steal our bufferByteArray channel accessing code and use it in the b
         }
 </code></pre>
 
-or bonus points for the cleaner option:
+Here we start incrementing the green bits with red channel slowly increasing each wrap and blue staying at 0, or bonus points for the cleaner option:
 
 <pre><code class="language-c">        for (int i = 0; i &lt; WIDTH * HEIGHT; i++) {
             buffer[i] += 0x00000100; // increment green channel directly
@@ -201,9 +200,11 @@ or bonus points for the cleaner option:
         }
 </code></pre>
 
-or you could just add 256 decimal to buffer[i].
+or you could just add 256 decimal to buffer[i]. To print red instead of green just add 0x00010000 or 256^2, 65536 instead.
 
 </details>
+
+You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
 
 ## Limiting Frame Rate (FPS)
 If we want to limit the frame time to a specific desired value, we can add a few lines of code. We add a few \#defines at the top of the file:

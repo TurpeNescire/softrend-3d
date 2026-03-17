@@ -12,7 +12,7 @@ A series of lessons building a 3D software rasterizer in C, from blank framebuff
 [GitHub Repository](https://github.com/TurpeNescire/softrend-3d)
 
 
-## Lessons
+# Lessons
 
-- [Lesson 01: Setup](lesson_01)
-- [Lesson 02: Drawing triangles](lesson_02)
+## [Lesson 01: Setup](lesson_01)
+## [Lesson 02: Drawing triangles](lesson_02)
