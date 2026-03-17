@@ -60,7 +60,9 @@ How do we connect the dots between two vertices to form an edge? There are sever
 ### Linear interpolation
 We have to endpoints on an edge, (x0, y0) and (x1, y1), and for any x value along that line we want to find the corresponding y. This works when zIf you look at the Wikipedia article above sets up a proportion of 
 
-![Lesson 02 Lerp Derivation]({{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}){: width="100%"}
+<video width="100%" controls autoplay loop muted>
+  <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
+</video>
 
 A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.
 
