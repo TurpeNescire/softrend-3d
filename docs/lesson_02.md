@@ -8,12 +8,12 @@ next_lesson: /lesson_03
 
 ![Lesson 02 Animated Triangle]({{ '/images/lesson_02_animated_triangle.gif' | relative_url }}){: width="100%"}
 
-# Clean up old code
+## Clean up old code
 We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing nextFrameTime to fenster_time() and advancing it by the desired frame time (1000ms / FPS) each iteration, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly that amount.
 
-[Lesson 02 Initial Source](https://github.com/TurpeNescire/softrend-3d/tree/3138f214f36acb6b3cee617c93566a7757034f60
+[Lesson 02 Initial Source](https://github.com/TurpeNescire/softrend-3d/tree/3138f214f36acb6b3cee617c93566a7757034f60)
 
-# Drawing our first triangle
+## Drawing our first triangle
 
 [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
 [triangle rasterization](https://en.wikipedia.org/wiki/Rasterisation#3D_images).
