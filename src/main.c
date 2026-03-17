@@ -36,7 +36,6 @@
 
 uint32_t buffer[WIDTH * HEIGHT];
 
-
 int main()
 {
     struct fenster window = {
@@ -48,14 +47,17 @@ int main()
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
+    // Keeps track of the current second so we can print FPS at the end
     int64_t secondStartMS   = fenster_time();
+    // Absolute target timestamp for next frame; advanced by exactly 1000/FPS
+    // each iteration so sleep overshoots cancel out across frames
     double  nextFrameTime   = (double)secondStartMS;
     int     frameCount      = 0;
     while (fenster_loop(&window) == 0) {
         int64_t frameStartMS = fenster_time();
         frameCount++;
 
-        // Time since last FPS print; used as denominator so the average self-corrects
+        // Time since last FPS print
         int64_t elapsedMS = frameStartMS - secondStartMS;
         if (elapsedMS >= 1000) {
             printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
@@ -63,9 +65,9 @@ int main()
             secondStartMS = frameStartMS;
         }
 
-        // Advance absolute target timestamp; overshoots cancel across frames
+        // sleep until we reach desired FRAME_TIME 
         nextFrameTime += 1000.0 / FPS;
-        int64_t remainingMS = (int64_t)(nextFrameTime - fenster_time());
+        double remainingMS = nextFrameTime - (double)fenster_time();
         if (remainingMS > 0) fenster_sleep(remainingMS);
     }
 
