@@ -32,8 +32,7 @@
 #define WIDTH  600
 #define HEIGHT 400
 
-#define FPS        60           // Targeted frame rate (frequency in hz)
-#define FRAME_TIME (1000 / FPS) // Targeted frame duration (period in ms)
+#define FPS 60 // Targeted frame rate (frequency in hz)
 
 uint32_t buffer[WIDTH * HEIGHT];
 
@@ -49,24 +48,26 @@ int main()
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
-    int64_t secondStart = fenster_time();
-    int64_t frameStart  = secondStart;
-    int     frameCount  = 0;
+    int64_t secondStartMS   = fenster_time();
+    double  nextFrameTime   = (double)secondStartMS;
+    int     frameCount      = 0;
     while (fenster_loop(&window) == 0) {
-        // print FPS once a second
-        frameCount++; 
-        if (fenster_time() - secondStart >= 1000) { // is elapsed time over 1000ms (1s)?
-            printf("fps: %d\n", frameCount);
-            frameCount  = 0;
-            secondStart = fenster_time();
+        int64_t frameStartMS = fenster_time();
+        frameCount++;
+
+        // Time since last FPS print; used as denominator so the average self-corrects
+        int64_t elapsedMS = frameStartMS - secondStartMS;
+        if (elapsedMS >= 1000) {
+            printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
+            frameCount    = 0;
+            secondStartMS = frameStartMS;
         }
 
-        // sleep until we reach desired FRAME_TIME 
-        int64_t remainingMS = frameStart + FRAME_TIME - fenster_time();
+        // Advance absolute target timestamp; overshoots cancel across frames
+        nextFrameTime += 1000.0 / FPS;
+        int64_t remainingMS = (int64_t)(nextFrameTime - fenster_time());
         if (remainingMS > 0) fenster_sleep(remainingMS);
-        frameStart = fenster_time();
     }
 
     fenster_close(&window);
 }
-

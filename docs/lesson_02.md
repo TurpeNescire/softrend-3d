@@ -6,6 +6,10 @@ prev_lesson: /lesson_01
 next_lesson: /lesson_03
 ---
 
+![Lesson 02 Animated Triangle]({{ '/images/lesson_02_animated_triangle.gif' | relative_url }}){: width="100%"}
+
+[Lesson 02 Initial Source](https://github.com/TurpeNescire/softrend-3d/tree/3138f214f36acb6b3cee617c93566a7757034f60
+
 # Drawing our first triangle
 
 [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham's_line_algorithm)
