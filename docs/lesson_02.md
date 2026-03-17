@@ -58,12 +58,18 @@ If you compile and run you should now see 3 single pixels outlining the vertices
 How do we connect the dots between two vertices to form an edge? There are several common methods. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. And modern FPUs can easily handle the simple division we'll need to determine whether a pixel is part of the line. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints.
 
 ### Linear interpolation
-We have to endpoints on an edge, (x0, y0) and (x1, y1), and for any x value along that line we want to find the corresponding y. This works when zIf you look at the Wikipedia article above sets up a proportion of 
+We have two endpoints on an edge, `(x0, y0)` and `(x1, y1)`, and for any `x` value along that line we want to find the corresponding `y`. In linear interpolation, the ratio of the known side `(x - x0)` to the fixed `dx` side value is called `t` or the *interpolation parameter*. When we calculate `t` for any given `x` value and multiply it by the fixed `dy` value, we get the displacement of the new `y` value from `y0`.  If we add `y0` back to it we get the actual coordinates for the new `y`. 
+
+Simply put, with two known endpoints and picking any point's `x` along that edge, linear interpolation gives us the `y` value at that point.  I've included a short [manim](https://github.com/3b1b/manim) demonstration video below.
 
 <video width="100%" controls autoplay loop muted>
   <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
 </video>
 
+You'll see the two endpoints `(x0, y0)` and `(x1, y1)`, and the `dx` and `dy` labels showing the distance between the `x` and `y` values of the two points. We're trying to find the `y` value at any given `x`. The length of the side `y - y0` is given by `t * dy`, and the actual `y` coordinate is given by adding `y0` to it. You can see some example `x` values and how the `y` value is calculated using these equations for points `(2, 10)` and `(16, 17)`.
+
+
+## in progress
 A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.
 
 
