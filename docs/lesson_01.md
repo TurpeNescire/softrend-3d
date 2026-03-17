@@ -6,7 +6,6 @@ next_lesson: /lesson_02
 ---
 ![Lesson 01 banner]({{ '/images/softrend_banner.png' | relative_url }}){: width="100%"}
 
-
 # Lesson 01: Purpose and Setup
 
 ## What's the goal?
@@ -240,6 +239,8 @@ and at the end of the loop:
 ```
 
 As a point of curiosity, if we were taking 39 hours before to draw all possible RBG values we'd now take around 78 hours to iterate over all the colors values. Worth noting that the alpha value is ignored, so it actually would take us around 2.27 years before the alpha channel wrapped back to 0 for each pixel.
+
+![Lesson 01 Animated Loop]({{ '/images/lesson_01_animated_loop.png' | relative_url }}){: width="100%"}
 
 ## Github Source Commit
 [Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/f66f63189ce5ccb2f95687dccc892918152e248d)
