@@ -51,9 +51,17 @@ The first step to drawing a triangle is to determine its vertices. If we want a 
 
 If you compile and run you should now see 3 single pixels outlining the vertices of a triangle. 
 
+[Updated main.c](https://github.com/TurpeNescire/softrend-3d/tree/f27ea7862ed20db5045cd7be59ae0d14e5abc243/src/main.c)
+
 ![Lesson 02 Triangle Vertices]({{ '/images/lesson_02_triangle_verts.png' | relative_url }}){: width="100%"}
 
-How do we connect the dots between two vertices to form an edge? There are several common methods. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. And modern FPUs can easily handle the simple division we'll need to determine whether a pixel is part of the line. 
+How do we connect the dots between two vertices to form an edge? There are several common methods. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. And modern FPUs can easily handle the simple division we'll need to determine whether a pixel is part of the line. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints.
+
+### Linear interpolation
+We have to endpoints on an edge, (x0, y0) and (x1, y1), and for any x value along that line we want to find the corresponding y. This works when zIf you look at the Wikipedia article above sets up a proportion of 
+
+![Lesson 02 Lerp Derivation]({{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}){: width="100%"}
+
 A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.
 
 
