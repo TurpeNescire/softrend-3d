@@ -85,10 +85,10 @@ Adding `y0` gives us the final linear interpolation formula for an unknown coord
 
 `y = y0 + t * dy`
 
-This is also directly derivable algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`.
+We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`. Hopefully having a visual grounding is helpful in understanding what the `t` ratio is and how it is used to scale `dy` at various points along the line, and why we add `y0` back to anchor `y` to an actual position and not as a relative displacement.
 
 ### Drawing edges with linear interpolation
-Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend trying to implement drawing the triangle yourself.
+Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself.
 
 My first naieve attempt looked like this:
 
@@ -104,7 +104,7 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 }
 ```
 
-I put the `drawLine` definition just before `main`, and in `main` at the top:
+I put the `drawLine` definition just before `main`, and in `main` at the top I defined a few vertices and attempted to draw a triangle by calling `drawLine` three times to draw the three edges:
 
 ```c
         .buf    = buffer
@@ -120,7 +120,9 @@ I put the `drawLine` definition just before `main`, and in `main` at the top:
     drawLine(x2, y2, x0, y0, WHITE);
 ```
 
-This just draws a straight horizontal line. Thinking it over, what happens when it draws the second edge `drawLine(x1, y1, x2, y2, WHITE)`? `dx` becomes -50, `dy` becomes -300, and in the first iteration of the `for` loop `x` is set to 350 and immediately fails the `x <= x1` test because `x1` is 300, so that edge never gets drawn, and similarly the third edge `drawLine(x2, y2, x0, y0, WHITE)` never draws because `x` is set to 300 and fails `x <= x1` because `x1` is 250. So the only edge that gets drawn is `drawLine(x0, y0, x1, y1, WHITE)` as a 100 pixel wide horizontal line.
+This just draws a straight horizontal line. Thinking it over, what happens when it draws the second edge `drawLine(x1, y1, x2, y2, WHITE)`?
+
+`dx` becomes -50, `dy` becomes -300, and in the first iteration of the `for` loop `x` is set to 350 and immediately fails the `x <= x1` test because `x1` is 300, so that edge never gets drawn. Similarly, the third edge `drawLine(x2, y2, x0, y0, WHITE)` never draws because `x` is set to 300 and fails `x <= x1` because `x1` is 250. So the only edge that gets drawn is `drawLine(x0, y0, x1, y1, WHITE)` as a 100 pixel wide horizontal line.
 
 The fix is easy, we just need to make sure that we start iterating from the leftmost `x` to the rightmost inside `drawLine`:
 
@@ -162,7 +164,7 @@ PIXEL(309, 405)
 [1]    46141 bus error  ./softrend
 ```
 
-Our screen is 400 pixels tall and we tried to write to y = 405, which would be below the screen. But we want to be drawing from an apex `y` position at 50 down to the base horizontal line `y` position at 350. When `x0 > x1` we failed to swap the `y` values also and we lost the relative positioning of `y` with respect to `x`. Easy fix, we'll add a similar swap for y.
+Our screen is 400 pixels tall and we tried to write to y = 405, which would be below the screen. But we want to be drawing from an apex `y` position at 50 down to the base horizontal line `y` position at 350. When `x0 > x1` we failed to swap the `y` values also and we lost the relative positioning of `y` with respect to `x`. In other words, we changed the line's endpoint positions from `(350, 350)` and `(300, 50)` to `(300, 350)` and `(350, 50)`. Easy fix, we'll add a similar swap for y.
 
 ```c
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
@@ -189,7 +191,7 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 
 ![Lesson 02 Triangle With Height Gaps]({{ '/images/lesson_02_triangle_height_gaps.png' | relative_url }}){: width="100%"}
 
-That's odd. There are a bunch of gaps in the vertical line. If you noticed the debug pixel position values, `x` was incremening by 1 but `y` was skipping 6 or 7 pixels each iteration. That's where the vertical gaps are coming from. How do we fix this? The difference in `x` values is 100 and the difference in `y` values is 300. If we iterated over the range of `y` values (300 times) we should see the interpolated `x` values increase after 6 or 7 iterations. We want to loop over the dominant axis with the greatest difference (length) and interpolate the positions of the other minor axis.
+That's odd. It looks like a triangle now, but there are a bunch of gaps in the vertical line. If you noticed the debug pixel position values, `x` was incremening by 1 but `y` was skipping 6 or 7 pixels each iteration. That's where the vertical gaps are coming from. How do we fix this? The difference in `x` values is 100 and the difference in `y` values is 300. If we iterated over the range of `y` values (300 times) we should see the interpolated `x` values increase after 6 or 7 iterations. We want to loop over the dominant axis with the greatest difference (length) and interpolate the positions of the other minor axis.
 
 ```c
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
@@ -248,7 +250,7 @@ This got rid of the gaps on the second edge from `(300, 50)` to `(350, 350)` for
     }
 ```
 
-![Lesson 02 Triangle With Gaps Fixed]({{ '/images/lesson_02_triangle_fixed.png' | relative_url }}){: width="100%"}
+![Lesson 02 Triangle With Height Gaps Fixed]({{ '/images/lesson_02_triangle_height_fixed.png' | relative_url }}){: width="100%"}
 
 Now the third edge properly draws down and to the left from the apex to the bottom left vertex, and the pixel gaps on the minor axis edges are gone. There are a few edge case concerns to think about. What if our `t` calculations divide by a `dx` or `dy` that is 0? Can this happen? It turns out only in one case. Can you spot it?
 
@@ -260,6 +262,7 @@ When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are
     if (dx == 0 && dy == 0) { PIXEL(x0, y0) = color; return; }
 ```
 
+[Click here](https://github.com/TurpeNescire/softrend-3d/tree/3e64b7a657379f022f4c1e89039be450f2365c4e/src/main.c) for the current `main.c`
 
 `drawLine` should now handle all edges cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` calls with:
 
