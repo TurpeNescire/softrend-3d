@@ -55,19 +55,46 @@ If you compile and run you should now see 3 single pixels outlining the vertices
 
 ![Lesson 02 Triangle Vertices]({{ '/images/lesson_02_triangle_verts.png' | relative_url }}){: width="100%"}
 
-How do we connect the dots between two vertices to form an edge? There are several common methods. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. And modern FPUs can easily handle the simple division we'll need to determine whether a pixel is part of the line. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints.
+How do we connect the dots between two vertices to form an edge? There are several common methods. We need to test each pixel to determine if it's on the line.[Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. And modern FPUs can easily handle the simple division we'll need to determine whether a pixel is part of the line. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints.
 
 ### Linear interpolation
-We have two endpoints on an edge, `(x0, y0)` and `(x1, y1)`, and for any `x` value along that line we want to find the corresponding `y`. In linear interpolation, the ratio of the known side `(x - x0)` to the fixed `dx` side value is called `t` or the *interpolation parameter*. When we calculate `t` for any given `x` value and multiply it by the fixed `dy` value, we get the displacement of the new `y` value from `y0`.  If we add `y0` back to it we get the actual coordinates for the new `y`. 
 
-Simply put, with two known endpoints and picking any point's `x` along that edge, linear interpolation gives us the `y` value at that point.  I've included a short [manim](https://github.com/3b1b/manim) demonstration video below.
+We have two endpoints on an edge, `(x0, y0)` and `(x1, y1)`, and for any `x` value along that line we want to find the corresponding `y`.
+
+The clearest way to think about this is geometrically. You can visualize the differences between the `x` and `y` values of the two points, `dx` and `dy`, as the sides of the right triangle formed by the two endpoints. For any point `x` along the edge, a smaller similar triangle is formed with sides `(x - x0)` and `(y - y0)`. Because the triangles are similar, their corresponding sides are proportional:
+
+`dy / dx = (y - y0) / (x - x0)`
+
+or rearranging:
+
+`(x - x0)/dx = (y - y0)/dy`
+
+We know the sides `dy`, `dx`, and `(x - x0)`. We can then solve for `(y - y0)` — the displacement of `y` from `y0`. Adding `y0` back turns that displacement into an actual screen coordinate. We know `y0` and we've just solved for `(y - y0)`, so: `y = y0 + (y - y0)`.
+
+This gives us the geometric derivation of the linear interpolation formula. We define `t = (x - x0) / dx` as the *interpolation parameter* — the ratio of how far `x` has traveled across `dx`, ranging from `0` at `x0` to `1` at `x1`. Substituting `t` into the `(x - x0)/dx = (y - y0)/dy` formula:
+
+`t = (y - y0)/dy`
+
+Multiplying the known value `t` by the known value `dy` scales that ratio to the full height of the triangle, giving the displacement of `y` from `y0`. 
+
+`t * dy = y - y0`
+
+Adding `y0` gives us the final linear interpolation formula for an unknown coordinate `y`:
+
+`y = y0 + t * dy`
+
+This is also directly derivable algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`.
+
+I've included a short [manim](https://github.com/3b1b/manim) demonstration below showing two endpoints `(2, 10)` and `(16, 17)`, with `dx` and `dy` labeled on the full triangle and the smaller triangle growing as `x` steps along the edge.
 
 <video width="100%" controls autoplay loop muted>
   <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You'll see the two endpoints `(x0, y0)` and `(x1, y1)`, and the `dx` and `dy` labels showing the distance between the `x` and `y` values of the two points. We're trying to find the `y` value at any given `x`. The length of the side `y - y0` is given by `t * dy`, and the actual `y` coordinate is given by adding `y0` to it. You can see some example `x` values and how the `y` value is calculated using these equations for points `(2, 10)` and `(16, 17)`.
+### Drawing edges with linear interpolation
+Using the interpolation formula, we can iterage over all of the x values between two points to find their corresponding y values.  But in the case where the difference in `y` values is greater than the different in `x` values, we'll end up with gaps in our Just as we solved for the `y` coordinate of a point on the line with a given `x` coordinate, we can derive the formula for the reciprocal as `x = x0 + t * dx`. If you imagine two types of lines, one set where the `dx` is greater than or equal to `dy` and the other where `dy` is greater than `dx`, we can 
 
+![Lesson 02 Triangle with Interpolated Edges]({{ '/images/lesson_02_interpolated_edges.png' | relative_url }}){: width="100%"}
 
 ## in progress
 A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.
