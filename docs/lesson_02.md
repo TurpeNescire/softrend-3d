@@ -59,23 +59,25 @@ How do we connect the dots between two vertices to form an edge? There are sever
 
 ### Linear interpolation
 
+<video width="100%" controls autoplay loop muted>
+  <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
+</video>
+
 We have two endpoints on an edge, `(x0, y0)` and `(x1, y1)`, and for any `x` value along that line we want to find the corresponding `y`.
 
-The clearest way to think about this is geometrically. You can visualize the differences between the `x` and `y` values of the two points, `dx` and `dy`, as the sides of the right triangle formed by the two endpoints. For any point `x` along the edge, a smaller similar triangle is formed with sides `(x - x0)` and `(y - y0)`. Because the triangles are similar, their corresponding sides are proportional:
+The differences between the `x` and `y` values of the two points are shown in the video as `dx` and `dy`, the legs of the right triangle formed by the two endpoints. For any point `x` along the edge, a smaller similar triangle is formed with legs `(x - x0)` and `(y - y0)`. Because the triangles are similar, their corresponding sides are proportional:
 
 `dy / dx = (y - y0) / (x - x0)`
 
-or rearranging:
+We want to get to a simple equation to solve for `y`. This is typically given as `y = y0 + t * dy`. By rearranging the above equation with cross multiplication:
 
 `(x - x0)/dx = (y - y0)/dy`
 
-We know the sides `dy`, `dx`, and `(x - x0)`. We can then solve for `(y - y0)` — the displacement of `y` from `y0`. Adding `y0` back turns that displacement into an actual screen coordinate. We know `y0` and we've just solved for `(y - y0)`, so: `y = y0 + (y - y0)`.
-
-This gives us the geometric derivation of the linear interpolation formula. We define `t = (x - x0) / dx` as the *interpolation parameter* — the ratio of how far `x` has traveled across `dx`, ranging from `0` at `x0` to `1` at `x1`. Substituting `t` into the `(x - x0)/dx = (y - y0)/dy` formula:
+We define `t = (x - x0) / dx` as the *interpolation parameter* — the ratio of how far `x` has traveled across `dx`, ranging from `0` at `x0` to `1` at `x1`. Substituting `t` into `(x - x0)/dx = (y - y0)/dy`:
 
 `t = (y - y0)/dy`
 
-Multiplying the known value `t` by the known value `dy` scales that ratio to the full height of the triangle, giving the displacement of `y` from `y0`. 
+Multiplying `t` by `dy` scales the ratio `t` to the full height of the triangle, giving the displacement (distance) of `y` from `y0`:
 
 `t * dy = y - y0`
 
@@ -84,12 +86,6 @@ Adding `y0` gives us the final linear interpolation formula for an unknown coord
 `y = y0 + t * dy`
 
 This is also directly derivable algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`.
-
-I've included a short [manim](https://github.com/3b1b/manim) demonstration below showing two endpoints `(2, 10)` and `(16, 17)`, with `dx` and `dy` labeled on the full triangle and the smaller triangle growing as `x` steps along the edge.
-
-<video width="100%" controls autoplay loop muted>
-  <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
-</video>
 
 ### Drawing edges with linear interpolation
 Using the interpolation formula, we can iterage over all of the x values between two points to find their corresponding y values.  But in the case where the difference in `y` values is greater than the different in `x` values, we'll end up with gaps in our Just as we solved for the `y` coordinate of a point on the line with a given `x` coordinate, we can derive the formula for the reciprocal as `x = x0 + t * dx`. If you imagine two types of lines, one set where the `dx` is greater than or equal to `dy` and the other where `dy` is greater than `dx`, we can 
