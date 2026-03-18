@@ -53,15 +53,21 @@ If you compile and run you should now see 3 single pixels outlining the vertices
 
 [Updated main.c](https://github.com/TurpeNescire/softrend-3d/tree/f27ea7862ed20db5045cd7be59ae0d14e5abc243/src/main.c)
 
-![Lesson 02 Triangle Vertices]({{ '/images/lesson_02_triangle_verts.png' | relative_url }}){: width="100%"}
+<figure>
+  <img src="{{ '/images/lesson_02_triangle_verts.png' | relative_url }}" alt="Triangle with no edges" style="width:100%">
+  <figcaption>Triangle vertices with no edges</figcaption>
+</figure>
 
 How do we connect the dots between two vertices to form an edge? There are several common methods. We need to test each pixel to determine if it's on the line. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints. Modern FPUs can easily handle the simple division we'll need to use.
 
 ### Linear interpolation
 
-<video width="100%" controls autoplay loop muted>
-  <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
-</video>
+<figure>
+  <video width="100%" controls loop muted>
+    <source src="{{ '/images/lesson_02_LerpDerivation.mp4' | relative_url }}" type="video/mp4">
+  </video>
+  <figcaption>Interpolation formula derivation</figcaption>
+</figure>
 
 We have two endpoints on an edge, `(x0, y0)` and `(x1, y1)`, and for any `x` value along that line we want to find the corresponding `y`.
 
@@ -189,7 +195,10 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 }
 ```
 
-![Lesson 02 Triangle With Height Gaps]({{ '/images/lesson_02_triangle_height_gaps.png' | relative_url }}){: width="100%"}
+<figure>
+  <img src="{{ '/images/lesson_02_triangle_height_gaps.png' | relative_url }}" alt="Triangle showing gaps in vertical edges" style="width:100%">
+  <figcaption>Triangle showing gaps on its vertical edge</figcaption>
+</figure>
 
 That's odd. It looks like a triangle now, but there are a bunch of gaps in the vertical line. If you noticed the debug pixel position values, `x` was incremening by 1 but `y` was skipping 6 or 7 pixels each iteration. That's where the vertical gaps are coming from. How do we fix this? The difference in `x` values is 100 and the difference in `y` values is 300. If we iterated over the range of `y` values (300 times) we should see the interpolated `x` values increase after 6 or 7 iterations. We want to loop over the dominant axis with the greatest difference (length) and interpolate the positions of the other minor axis.
 
@@ -250,7 +259,11 @@ This got rid of the gaps on the second edge from `(300, 50)` to `(350, 350)` for
     }
 ```
 
-![Lesson 02 Triangle With Height Gaps Fixed]({{ '/images/lesson_02_triangle_height_fixed.png' | relative_url }}){: width="100%"}
+<figure>
+  <img src="{{ '/images/lesson_02_triangle_height_fixed.png' | relative_url }}" alt="Triangle with height gaps fixed" style="width:100%">
+  <figcaption>Triangle with height gaps fixed</figcaption>
+</figure>
+
 
 Now the third edge properly draws down and to the left from the apex to the bottom left vertex, and the pixel gaps on the minor axis edges are gone. There are a few edge case concerns to think about. What if our `t` calculations divide by a `dx` or `dy` that is 0? Can this happen? It turns out only in one case. Can you spot it?
 
@@ -305,7 +318,10 @@ When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are
 
 Using the interpolation formula, we can iterage over all of the x values between two points to find their corresponding y values.  But in the case where the difference in `y` values is greater than the different in `x` values, we'll end up with gaps in our Just as we solved for the `y` coordinate of a point on the line with a given `x` coordinate, we can derive the formula for the reciprocal as `x = x0 + t * dx`. If you imagine two types of lines, one set where the `dx` is greater than or equal to `dy` and the other where `dy` is greater than `dx`, we can 
 
-![Lesson 02 Triangle Edge Cases]({{ '/images/lesson_02_triangle_edge_cases.png' | relative_url }}){: width="100%"}
+<figure>
+  <img src="{{ '/images/lesson_02_triangle_edge_cases.png' | relative_url }}" alt="Various triangle edge cases" style="width:100%">
+  <figcaption>Various triangle edge cases</figcaption>
+</figure>
 
 ## in progress
 A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.

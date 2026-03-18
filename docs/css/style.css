@@ -43,6 +43,13 @@ main ul ul {
   list-style-type: circle;
 }
 
+figure { margin: 1.5rem 0; }
+figcaption {
+  font-size: 12px;
+  text-align: center;
+  margin-top: 0.4rem;
+}
+
 /* ── Layout configuration variables ───────────────────── */
 :root {
   --toc-width: 20%;           /* sidebar TOC width as % of page */
@@ -159,6 +166,7 @@ body.theme-dark nav.bottom-nav { border-color: #2a2a4a; }
 body.theme-dark nav.bottom-nav a { color: #a78bfa; }
 body.theme-dark select#theme-picker { background: #12122a; color: #a78bfa; border-color: #2a2a4a; }
 body.theme-dark .accent-rule { display: block; background: linear-gradient(90deg, #7c3aed, #4f46e5); }
+body.theme-dark figcaption { color: #8892a4; }
 
 /* ── Theme: Terminal ──────────────────────────────────── */
 body.theme-terminal {
@@ -178,6 +186,7 @@ body.theme-terminal nav.lesson-nav { border-color: #21262d; color: #3fb950; font
 body.theme-terminal nav.bottom-nav { border-color: #21262d; }
 body.theme-terminal nav.bottom-nav a { color: #58a6ff; }
 body.theme-terminal select#theme-picker { background: #161b22; color: #58a6ff; border-color: #21262d; font-family: monospace; }
+body.theme-terminal figcaption { color: #8d96a0; font-family: monospace; }
 
 /* ── Theme: Clean Docs ────────────────────────────────── */
 body.theme-docs {
@@ -195,6 +204,7 @@ body.theme-docs nav.lesson-nav { border-color: #e0e0e0; color: #666; }
 body.theme-docs nav.bottom-nav { border-color: #e0e0e0; }
 body.theme-docs nav.bottom-nav a { color: #185FA5; }
 body.theme-docs select#theme-picker { background: #fff; color: #333; border-color: #ccc; }
+body.theme-docs figcaption { color: #666; }
 
 /* ── Theme: Editorial ─────────────────────────────────── */
 body.theme-editorial {
@@ -214,6 +224,7 @@ body.theme-editorial nav.bottom-nav { border-color: #dddbd5; }
 body.theme-editorial nav.bottom-nav a { color: #993C1D; }
 body.theme-editorial select#theme-picker { background: #faf8f5; color: #5F5E5A; border-color: #dddbd5; font-family: Georgia, serif; }
 body.theme-editorial .accent-rule { display: block; background: #993C1D; width: 36px; height: 3px; }
+body.theme-editorial figcaption { color: #888780; font-family: Georgia, serif; }
 
 /* ── Syntax Highlighting: Dark (VS Code dark) ─────────── */
 body.theme-dark .highlight,
