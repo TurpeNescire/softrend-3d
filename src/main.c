@@ -43,33 +43,38 @@ uint32_t buffer[WIDTH * HEIGHT];
 
 // Draw a straight line from one endpoint in the buffer to another
 // Does not do bounds checking - up to the caller to pass valid indices
+// TODO: for performance we can switch to Bresenham's later if needed
+//       or use point-slope and cache slope once as dy/dx and using
+//       y = topY + (x - leftX) * slope
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
-    int dx = abs(x1 - x0);
-    int dy = abs(y1 - y0);
+    int dx = abs(x1 - x0), dy = abs(y1 - y0);
+    // Degenerate case: both endpoints identical, draw a single pixel and bail
+    if (dx == 0 && dy == 0) { PIXEL(x0, y0) = color; return; }
 
-    // Iterate over the axis with larger delta
-    if (dx >= dy) {
-        // More horizontal - iterate over x
-        if (x0 > x1) { // make sure x0 is on the left
-            int tmp = x0; x0 = x1; x1 = tmp;
-            tmp = y0; y0 = y1; y1 = tmp;
-        }
-        dx = x1 - x0; dy = y1 - y0;
-        for (int x = x0; x <= x1; x++) {
-            float t = (float)(x - x0) / dx;
-            int y = (int)(y0 + t * dy);
+    // Sort by the dominant axis
+    // x-dominant: ensure leftX < rightX
+    // y-dominant: ensure topY < bottomY
+    // x and y must swap together — a partial swap mixes coordinates between the endpoints
+    int xDominant = (dx >= dy);
+    int leftX = x0, rightX  = x1;
+    int topY  = y0, bottomY = y1;
+    if (xDominant ? leftX > rightX : topY > bottomY) { 
+        leftX = x1; rightX  = x0;
+        topY  = y1; bottomY = y0;
+    }
+
+    if (xDominant) {
+        dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
+        for (int x = leftX; x <= rightX; x++) {
+            float t = (float)(x - leftX) / dx; // progress along x: 0 at leftX, 1 at rightX
+            int y = (int)(topY + t * dy);      // interpolated y at this x
             PIXEL(x, y) = color;
         }
     } else {
-        // More vertical - iterate over y
-        if (y0 > y1) { // make sure y0 is higher
-            int tmp = x0; x0 = x1; x1 = tmp;
-            tmp = y0; y0 = y1; y1 = tmp;
-        }
-        dx = x1 - x0; dy = y1 - y0;
-        for (int y = y0; y <= y1; y++) {
-            float t = (float)(y - y0) / dy;
-            int x = (int)(x0 + t * dx);
+        dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
+        for (int y = topY; y <= bottomY; y++) {
+            float t = (float)(y - topY) / dy; // progress along y: 0 at topY, 1 at bottomY
+            int x = (int)(leftX + t * dx);    // interpolated x at this y
             PIXEL(x, y) = color;
         }
     }
@@ -84,18 +89,15 @@ int main()
         .buf    = buffer
     };
 
-    // define's the vertices of a 300 pixel wide, 200 pixel high screen centered triangle
-    int x0 = 150, y0 = 300; // bottom-left
-    int x1 = 450, y1 = 300; // bottom-right
-    int x2 = 300, y2 = 100; // apex
+    // vertices of a 100 pixel wide, 300 pixel tall screen centered triangle
+    int x0 = 250, y0 = 350; // bottom-left
+    int x1 = 350, y1 = 350; // bottom-right
+    int x2 = 300, y2 =  50; // apex
+
     drawLine(x0, y0, x1, y1, WHITE);
     drawLine(x1, y1, x2, y2, WHITE);
     drawLine(x2, y2, x0, y0, WHITE);
-
-    // PIXEL(x0, y0) = WHITE;
-    // PIXEL(x1, y1) = WHITE;
-    // PIXEL(x2, y2) = WHITE;
-
+    
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
