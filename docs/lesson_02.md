@@ -87,9 +87,18 @@ Multiplying `t` by `dy` scales the ratio `t` to the full height of the triangle,
 
 `t * dy = y - y0`
 
-Adding `y0` gives us the final linear interpolation formula for an unknown coordinate `y`:
+Now we have the side length `dy` scaled by the ratio `t` equal to the displacement (distance) of `y` from `y0`. Adding `y0` to both sides turns the formula from solving for a displacement into solving for the `y` coordinate:
 
 `y = y0 + t * dy`
+
+Grounding this in an example from the video, with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
+
+```console
+dx = 14, dy = 7
+(x0, y0) = (2, 10)
+t  = (x - x0) / dx = (7 - 2) / 14  = 5/14 ≈ 0.36
+y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
+```
 
 We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`. Hopefully having a visual grounding is helpful in understanding what the `t` ratio is and how it is used to scale `dy` at various points along the line, and why we add `y0` back to anchor `y` to an actual position and not as a relative displacement.
 
@@ -400,6 +409,8 @@ and in `main`:
 ```
 
 # Bug fixes
+
+## Unused frame timing variable
 I noticed that `frameStartMS` declared at the top of the `while` loop in `main` is not doing much lifting. I might need such a variable later, but for now we can remove its declaration and change the FPS check loop to use `fenster_time()` directly in both cases to grab the current and not stale system time:
 
 ```c
@@ -412,6 +423,7 @@ I noticed that `frameStartMS` declared at the top of the `while` loop in `main` 
         }
 ```
 
+## drawLine comment
 It's good to always keep your comments up to date. Since this is an educational codebase, comments will err on the side of overly verbose. I like to comment my functions at the top with any relevant information on the function in general. To the `drawLine` definition I added a performance related TODO for the future:
 
 ```c
@@ -422,4 +434,28 @@ It's good to always keep your comments up to date. Since this is an educational 
 //       y = topY + (x - leftX) * slope for each pixel
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 ```
+
+## drawLine rounding issue
+Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Integer conversions floor the resulting value. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
+
+```console
+dx = 14, dy = 7
+(x0, y0) = (2, 10)
+t  = (x - x0) / dx = (7 - 2) / 14  = 5/14 ≈ 0.36
+y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
+```
+
+`y` is floored from 12.5 to 12. If we want a more accurate pixel value, we can add 0.5 to both branch calculations:
+
+```c
+// x dominant
+int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x
+// y dominant
+int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y
+```
+
+<figure>
+  <img src="{{ 'images/lesson_02_triangle_test_cases_colored_rounded.png' | relative_url }}" alt="Test cases with interpolation rounding" style="width:100%">
+  <figcaption>Triangle test cases with rounded interpolation values</figcaption>
+</figure>
 

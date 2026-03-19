@@ -92,15 +92,15 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     if (xDominant) {
         dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
         for (int x = leftX; x <= rightX; x++) {
-            float t = (float)(x - leftX) / dx; // progress along x: 0 at leftX, 1 at rightX
-            int y = (int)(topY + t * dy);      // interpolated y at this x
+            float t = (float)(x - leftX) / dx;   // progress along x: 0 at leftX, 1 at rightX
+            int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x
             PIXEL(x, y) = color;
         }
     } else {
         dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
         for (int y = topY; y <= bottomY; y++) {
-            float t = (float)(y - topY) / dy; // progress along y: 0 at topY, 1 at bottomY
-            int x = (int)(leftX + t * dx);    // interpolated x at this y
+            float t = (float)(y - topY) / dy;     // progress along y: 0 at topY, 1 at bottomY
+            int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y
             PIXEL(x, y) = color;
         }
     }
