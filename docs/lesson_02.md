@@ -101,7 +101,9 @@ t  = (x - x0) / dx = (7 - 2) / 14  = 5/14 ≈ 0.36
 y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
 ```
 
-We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`. Hopefully having a visual grounding is helpful in understanding what the `t` ratio is and how it is used to scale `dy` at various points along the line, and why we add `y0` back to anchor `y` to an actual position and not as a relative displacement.
+`y ≈ 12.5`, so the interpolated point along the line defined `(2, 10)` and `(16, 17)` at `x = 7` is `(7, 12.5)`. 
+
+We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`.
 
 One issue I had early on when just being presented with the interpolation algorithm was trying to figure out what each of the values meant, and why we added `y0` to the formula, and why `y0` and not `y1`. Hopefully this helps clarify what these values are, and  you can answer those questions I had.
 
@@ -118,7 +120,7 @@ y  = y1 + t * dy   = 17 + -0.64 * 7         ≈ 12.5
 We have a new `t` value and anchor from `y1` instead of `y0`, but end up with the same `y` value.
 
 ## Drawing edges with linear interpolation
-Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself.
+Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself before reading my version.
 
 My first naieve attempt looked like this:
 
@@ -291,7 +293,7 @@ This got rid of the gaps on the second edge from `(300, 50)` to `(350, 350)` for
 
 Now the third edge properly draws down and to the left from the apex to the bottom left vertex, and the pixel gaps on the minor axis edges are gone. There are a few edge case concerns to think about. What if our `t` calculations divide by a `dx` or `dy` that is 0? Can this happen? It turns out only in one case. Can you spot it?
 
-When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are the same. In this case, we end up on the `xDominant` branch and divide by `dx` that is equal to 0. We want to handle this edge case by just printing a single pixel at `(x0, y0)` or `(x1, y1)` - it doesn't matter which. Add this to the top of `drawLine`:
+When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are the same. In this case, we end up on the `xDominant` branch and divide by `dx` that is equal to 0 [which we want to avoid](https://en.wikipedia.org/wiki/Division_by_zero#Floating-point_arithmetic). We want to handle this edge case by just printing a single pixel at `(x0, y0)` or `(x1, y1)` - it doesn't matter which. Add this to the top of `drawLine`:
 
 ```c
     int dx = abs(x1 - x0), dy = abs(y1 - y0);
@@ -473,8 +475,18 @@ int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
 int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 ```
 
+It's hard to see the difference unless you overlay the images and flip between them quickly, but the second is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slit shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position.
+
+<figure>
+  <img src="{{ 'images/lesson_02_triangle_test_cases_colored.png' | relative_url }}" alt="Test cases without interpolation rounding" style="width:100%">
+  <figcaption>Triangle test cases without rounded interpolation values</figcaption>
+</figure>
+
 <figure>
   <img src="{{ 'images/lesson_02_triangle_test_cases_colored_rounded.png' | relative_url }}" alt="Test cases with interpolation rounding" style="width:100%">
   <figcaption>Triangle test cases with rounded interpolation values</figcaption>
 </figure>
+
+# Github Source Commit
+[Project Source: Lesson 02](https://github.com/TurpeNescire/softrend-3d/tree/b6857806cd6e949d4d506e3e383777343d85b7d3/src/main.c)
 
