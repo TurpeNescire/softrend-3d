@@ -272,59 +272,139 @@ When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are
 ```c
     int dx = abs(x1 - x0), dy = abs(y1 - y0);
     // Degenerate case: both endpoints identical, draw a single pixel and bail
+    // dx == 0 alone is not sufficient — a vertical line has dx == 0 but dy > 0
+    // and draws correctly via the y-branch.
     if (dx == 0 && dy == 0) { PIXEL(x0, y0) = color; return; }
 ```
 
 [Click here](https://github.com/TurpeNescire/softrend-3d/tree/3e64b7a657379f022f4c1e89039be450f2365c4e/src/main.c) for the current `main.c`
 
-`drawLine` should now handle all edges cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` calls with:
+### drawLine edge case testing
+`drawLine` should now handle all edges cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. We're also going to want more colors in the future, so I created an array of color values `colors` and an enum `Color` to index them. Place this where we currently have the #define for WHITE:
+
+```c
+typedef enum {
+    BLACK, WHITE, RED, GREEN, BLUE,
+    YELLOW, CYAN, MAGENTA,
+    GRAY, SILVER,
+    ORANGE, PURPLE, MAROON, NAVY, TEAL,
+    COLOR_COUNT
+} Color;
+
+uint32_t colors[] = {
+    0xFF000000, // BLACK
+    0xFFFFFFFF, // WHITE
+    0xFFFF0000, // RED
+    0xFF00FF00, // GREEN
+    0xFF0000FF, // BLUE
+    0xFFFFFF00, // YELLOW
+    0xFF00FFFF, // CYAN
+    0xFFFF00FF, // MAGENTA
+    0xFF808080, // GRAY
+    0xFFC0C0C0, // SILVER
+    0xFFFF8000, // ORANGE
+    0xFF800080, // PURPLE
+    0xFF800000, // MAROON
+    0xFF000080, // NAVY
+    0xFF008080, // TEAL
+};
+```
+
+
+<figure>
+  <img src="{{ '/images/lesson_02_triangle_colors.png' | relative_url }}" alt="Triangle with crazy colors" style="width:100%">
+  <figcaption>Pretty triangle</figcaption>
+</figure>
+
+Not quite what I want. Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` calls with:
 
 ```c
     // x-dominant (wide/flat)        — top-left cell
-    drawLine( 20, 170, 180, 170, WHITE);
-    drawLine(180, 170, 100,  30, WHITE);
-    drawLine(100,  30,  20, 170, WHITE);
+    drawLine( 20, 170, 180, 170, colors[RED]);
+    drawLine(180, 170, 100,  30, colors[RED]);
+    drawLine(100,  30,  20, 170, colors[RED]);
 
     // y-dominant (tall/narrow)      — top-middle cell
-    drawLine(270, 180, 330, 180, WHITE);
-    drawLine(330, 180, 300,  20, WHITE);
-    drawLine(300,  20, 270, 180, WHITE);
+    drawLine(270, 180, 330, 180, colors[GREEN]);
+    drawLine(330, 180, 300,  20, colors[GREEN]);
+    drawLine(300,  20, 270, 180, colors[GREEN]);
 
     // one vertical edge              — top-right cell
-    drawLine(410,  20, 410, 180, WHITE);
-    drawLine(410, 180, 580, 100, WHITE);
-    drawLine(580, 100, 410,  20, WHITE);
+    drawLine(410,  20, 410, 180, colors[BLUE]);
+    drawLine(410, 180, 580, 100, colors[BLUE]);
+    drawLine(580, 100, 410,  20, colors[BLUE]);
 
     // one horizontal edge            — bottom-left cell
-    drawLine( 20, 210, 180, 210, WHITE);
-    drawLine(180, 210, 100, 380, WHITE);
-    drawLine(100, 380,  20, 210, WHITE);
+    drawLine( 20, 210, 180, 210, colors[YELLOW]);
+    drawLine(180, 210, 100, 380, colors[YELLOW]);
+    drawLine(100, 380,  20, 210, colors[YELLOW]);
 
     // right triangle                 — bottom-middle cell
-    drawLine(220, 220, 220, 380, WHITE);
-    drawLine(220, 380, 380, 380, WHITE);
-    drawLine(380, 380, 220, 220, WHITE);
+    drawLine(220, 220, 220, 380, colors[CYAN]);
+    drawLine(220, 380, 380, 380, colors[CYAN]);
+    drawLine(380, 380, 220, 220, colors[CYAN]);
 
     // two coincident vertices        — bottom-right cell
-    drawLine(500, 220, 500, 220, WHITE);
-    drawLine(500, 220, 420, 370, WHITE);
-    drawLine(420, 370, 500, 220, WHITE);
+    drawLine(500, 220, 500, 220, colors[MAGENTA]);
+    drawLine(500, 220, 420, 370, colors[MAGENTA]);
+    drawLine(420, 370, 500, 220, colors[MAGENTA]);
 
     // single point — tucked in corner of bottom-right cell
-    drawLine(570, 370, 570, 370, WHITE);
-    drawLine(570, 370, 570, 370, WHITE);
-    drawLine(570, 370, 570, 370, WHITE);
+    drawLine(570, 370, 570, 370, colors[GRAY]);
+    drawLine(570, 370, 570, 370, colors[GRAY]);
+    drawLine(570, 370, 570, 370, colors[GRAY]);
 ```
 
-Using the interpolation formula, we can iterage over all of the x values between two points to find their corresponding y values.  But in the case where the difference in `y` values is greater than the different in `x` values, we'll end up with gaps in our Just as we solved for the `y` coordinate of a point on the line with a given `x` coordinate, we can derive the formula for the reciprocal as `x = x0 + t * dx`. If you imagine two types of lines, one set where the `dx` is greater than or equal to `dy` and the other where `dy` is greater than `dx`, we can 
-
 <figure>
-  <img src="{{ '/images/lesson_02_triangle_edge_cases.png' | relative_url }}" alt="Various triangle edge cases" style="width:100%">
-  <figcaption>Various triangle edge cases</figcaption>
+  <img src="{{ 'images/lesson_02_triangle_edge_cases_colored.png' | relative_url }}" alt="Various colored triangle edge cases" style="width:100%">
+  <figcaption>Various colored triangle edge cases</figcaption>
 </figure>
 
-## in progress
-A 3D object is typically described as a collection of meshes that contain geometric information about the triangle or quad faces of the object. Triangles are the easiest to work with because all points on the triangle are coplanar, and the face has only one surface normal. We'll come back to all of this later when we learn to import a geometry from an object file.
+## Key handling
+Soon we'll be need more complex keyboard and mouse input handling, but for now, I just want to add the Escape key and Command+Q/Ctrl+Q for closing the program. Fenster exposes 
 
+```c
+// Returns 1 if the application should quit, 0 otherwise
+int handleInput(struct fenster *f) {
+    if (f->keys[27]) return 1;                        // Escape
+    if (f->keys['Q'] && (f->mod & 8)) return 1;      // Cmd+Q  (macOS)
+    if (f->keys['Q'] && (f->mod & 1)) return 1;      // Ctrl+Q (Windows/Linux)
+    return 0;
+}
+```
 
+and in `main`:
 
+```c
+            secondStartMS = fenster_time();
+        }
+
+        if (handleInput(&window)) break;
+
+        // sleep until we reach desired FRAME_TIME 
+        nextFrameTime += 1000.0 / FPS;
+```
+
+## Bug fixes
+I noticed that `frameStartMS` declared at the top of the `while` loop in `main` is not doing much lifting. I might need such a variable later, but for now we can remove its declaration and change the FPS check loop to use `fenster_time()` directly in both cases to grab the current and not stale system time:
+
+```c
+        // Time since last FPS print
+        int64_t elapsedMS = fenster_time() - secondStartMS;
+        if (elapsedMS >= 1000) {
+            printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
+            frameCount    = 0;
+            secondStartMS = fenster_time();
+        }
+```
+
+It's good to always keep your comments up to date. Since this is an educational codebase, comments will err on the side of overly verbose. I like to comment my functions at the top with any relevant information on the function in general. To the `drawLine` definition I added a performance related TODO for the future:
+
+```c
+// Draw a straight line from one endpoint in the buffer to another
+// Does not do bounds checking - up to the caller to pass valid indices
+// TODO: for performance we can switch to Bresenham's later if needed
+//       or use point-slope and cache slope once as dy/dx and using
+//       y = topY + (x - leftX) * slope for each pixel
+void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
+```

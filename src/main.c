@@ -37,7 +37,31 @@
 // Framebuffer is row-major
 #define PIXEL(x, y) buffer[(y) * WIDTH + (x)]
 
-#define WHITE 0xFFFFFFFF
+typedef enum {
+    BLACK, WHITE, RED, GREEN, BLUE,
+    YELLOW, CYAN, MAGENTA,
+    GRAY, SILVER,
+    ORANGE, PURPLE, MAROON, NAVY, TEAL,
+    COLOR_COUNT
+} Color;
+
+uint32_t colors[] = {
+    0xFF000000, // BLACK
+    0xFFFFFFFF, // WHITE
+    0xFFFF0000, // RED
+    0xFF00FF00, // GREEN
+    0xFF0000FF, // BLUE
+    0xFFFFFF00, // YELLOW
+    0xFF00FFFF, // CYAN
+    0xFFFF00FF, // MAGENTA
+    0xFF808080, // GRAY
+    0xFFC0C0C0, // SILVER
+    0xFFFF8000, // ORANGE
+    0xFF800080, // PURPLE
+    0xFF800000, // MAROON
+    0xFF000080, // NAVY
+    0xFF008080, // TEAL
+};
 
 uint32_t buffer[WIDTH * HEIGHT];
 
@@ -45,10 +69,12 @@ uint32_t buffer[WIDTH * HEIGHT];
 // Does not do bounds checking - up to the caller to pass valid indices
 // TODO: for performance we can switch to Bresenham's later if needed
 //       or use point-slope and cache slope once as dy/dx and using
-//       y = topY + (x - leftX) * slope
+//       y = topY + (x - leftX) * slope for each pixel
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     int dx = abs(x1 - x0), dy = abs(y1 - y0);
     // Degenerate case: both endpoints identical, draw a single pixel and bail
+    // dx == 0 alone is not sufficient — a vertical line has dx == 0 but dy > 0
+    // and draws correctly via the y-branch.
     if (dx == 0 && dy == 0) { PIXEL(x0, y0) = color; return; }
 
     // Sort by the dominant axis
@@ -80,6 +106,14 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     }
 }
 
+// Returns 1 if the application should quit, 0 otherwise
+int handleInput(struct fenster *f) {
+    if (f->keys[27]) return 1;                  // Escape
+    if (f->keys['Q'] && (f->mod & 8)) return 1; // Cmd+Q  (macOS)
+    if (f->keys['Q'] && (f->mod & 1)) return 1; // Ctrl+Q (Windows/Linux)
+    return 0;
+}
+
 int main()
 {
     struct fenster window = {
@@ -88,16 +122,42 @@ int main()
         .height = HEIGHT,
         .buf    = buffer
     };
-
-    // vertices of a 100 pixel wide, 300 pixel tall screen centered triangle
-    int x0 = 250, y0 = 350; // bottom-left
-    int x1 = 350, y1 = 350; // bottom-right
-    int x2 = 300, y2 =  50; // apex
-
-    drawLine(x0, y0, x1, y1, WHITE);
-    drawLine(x1, y1, x2, y2, WHITE);
-    drawLine(x2, y2, x0, y0, WHITE);
     
+    // x-dominant (wide/flat)        — top-left cell
+    drawLine( 20, 170, 180, 170, colors[RED]);
+    drawLine(180, 170, 100,  30, colors[RED]);
+    drawLine(100,  30,  20, 170, colors[RED]);
+
+    // y-dominant (tall/narrow)      — top-middle cell
+    drawLine(270, 180, 330, 180, colors[GREEN]);
+    drawLine(330, 180, 300,  20, colors[GREEN]);
+    drawLine(300,  20, 270, 180, colors[GREEN]);
+
+    // one vertical edge              — top-right cell
+    drawLine(410,  20, 410, 180, colors[BLUE]);
+    drawLine(410, 180, 580, 100, colors[BLUE]);
+    drawLine(580, 100, 410,  20, colors[BLUE]);
+
+    // one horizontal edge            — bottom-left cell
+    drawLine( 20, 210, 180, 210, colors[YELLOW]);
+    drawLine(180, 210, 100, 380, colors[YELLOW]);
+    drawLine(100, 380,  20, 210, colors[YELLOW]);
+
+    // right triangle                 — bottom-middle cell
+    drawLine(220, 220, 220, 380, colors[CYAN]);
+    drawLine(220, 380, 380, 380, colors[CYAN]);
+    drawLine(380, 380, 220, 220, colors[CYAN]);
+
+    // two coincident vertices        — bottom-right cell
+    drawLine(500, 220, 500, 220, colors[MAGENTA]);
+    drawLine(500, 220, 420, 370, colors[MAGENTA]);
+    drawLine(420, 370, 500, 220, colors[MAGENTA]);
+
+    // single point — tucked in corner of bottom-right cell
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
+
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
@@ -108,16 +168,17 @@ int main()
     double  nextFrameTime   = (double)secondStartMS;
     int     frameCount      = 0;
     while (fenster_loop(&window) == 0) {
-        int64_t frameStartMS = fenster_time();
         frameCount++;
 
         // Time since last FPS print
-        int64_t elapsedMS = frameStartMS - secondStartMS;
+        int64_t elapsedMS = fenster_time() - secondStartMS;
         if (elapsedMS >= 1000) {
             printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
             frameCount    = 0;
-            secondStartMS = frameStartMS;
+            secondStartMS = fenster_time();
         }
+
+        if (handleInput(&window)) break;
 
         // sleep until we reach desired FRAME_TIME 
         nextFrameTime += 1000.0 / FPS;
