@@ -205,7 +205,7 @@ or you could just add 256 decimal to buffer[i]. To print red instead of green ju
 
 You could sit and watch the green channel values slowly increase, but it'd be quite a while before you noticed the green tint effecting the blue. You might ask yourself at this point, how can I make this process take even longer?
 
-## Limiting Frame Rate (FPS)
+# Limiting Frame Rate (FPS)
 If we want to limit the frame time to a specific desired value, we can add a few lines of code. We add a few \#defines at the top of the file:
 
 ```c
@@ -242,6 +242,6 @@ As a point of curiosity, if we were taking 39 hours before to draw all possible 
 
 ![Lesson 01 Animated Loop]({{ '/images/lesson_01_animated_loop.gif' | relative_url }}){: width="100%"}
 
-## Github Source Commit
+# Github Source Commit
 [Project Source: Lesson 01](https://github.com/TurpeNescire/softrend-3d/tree/f66f63189ce5ccb2f95687dccc892918152e248d/src/main.c)
 

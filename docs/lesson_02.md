@@ -8,12 +8,12 @@ next_lesson: /lesson_03
 
 ![Lesson 02 Animated Triangle]({{ '/images/lesson_02_animated_triangle.gif' | relative_url }}){: width="100%"}
 
-## Clean up old timing code
+# Clean up old timing code
 We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up.
 
 [Lesson 02: Initial main.c](https://github.com/TurpeNescire/softrend-3d/tree/acf002b72695acdcf68a3dc822e6e2e747339ab3/src/main.c)
 
-## Drawing our first triangle
+# Drawing our first triangle
 
 Drawing anything to the screen at this point involves setting the color value of the individual `buffer` pixels. Because we declared `buffer` in global scope, it is automatically 0 initialized along with all other global scoped variables, which as we saw means the color black when all color channels are set to 0 in RGB. We have created a window `WIDTH` pixels wide and `HEIGHT` pixels tall, so there are 600x400 or 240,000 pixels in our window. We could have declared `buffer` as a row-major multi-dimensional array, `uint32_t buffer[HEIGHT][WIDTH]` which is of type `uint32_t **`, and assigned `window.buf = (uint32_t *)buffer;`. This simplifies the notation for element access, allowing us to access elements with `buffer[y][x]`, but hides the flat nature of the memory array and requires us to remember the array is row major. Both forms should compile to the same machine code, so it's mostly a matter of preference - I like using a flat array. For the flat buffer array we can create a convenience macro for getting and setting pixel information, and add a new color constant `WHITE` for later use:
 
@@ -60,7 +60,7 @@ If you compile and run you should now see 3 single pixels outlining the vertices
 
 How do we connect the dots between two vertices to form an edge? There are several common methods. We need to test each pixel to determine if it's on the line. [Bresenham's line algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) is an oldy that avoids using floating-point division, but is a bit of a black magic algorithm at first glance. For me, [linear interpolation](https://en.wikipedia.org/wiki/Linear_interpolation#Linear_interpolation_between_two_known_points) is the most understandable method for finding a given point along an edge with two known endpoints. Modern FPUs can easily handle the simple division we'll need to use.
 
-### Linear interpolation
+## Linear interpolation
 
 <figure>
   <video width="100%" controls loop muted>
@@ -93,7 +93,7 @@ Adding `y0` gives us the final linear interpolation formula for an unknown coord
 
 We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`. Hopefully having a visual grounding is helpful in understanding what the `t` ratio is and how it is used to scale `dy` at various points along the line, and why we add `y0` back to anchor `y` to an actual position and not as a relative displacement.
 
-### Drawing edges with linear interpolation
+## Drawing edges with linear interpolation
 Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself.
 
 My first naieve attempt looked like this:
@@ -279,7 +279,7 @@ When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are
 
 [Click here](https://github.com/TurpeNescire/softrend-3d/tree/3e64b7a657379f022f4c1e89039be450f2365c4e/src/main.c) for the current `main.c`
 
-### drawLine edge case testing
+## drawLine edge case testing
 `drawLine` should now handle all types of lines cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. We're also going to want more colors in the future, so I created an array of color values `colors` and an enum `Color` to index them. Place this where we currently have the #define for WHITE:
 
 ```c
@@ -354,10 +354,10 @@ Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` call
   <figcaption>Various colored triangle test cases</figcaption>
 </figure>
 
-## Key handling
+# Key handling
 Soon we'll be needing more complex keyboard and mouse input handling, but for now, I just want to add the Escape key and Command+Q/Ctrl+Q for closing the program. 
 
-### Fenster keyhandling minutiae
+## Fenster keyhandling minutiae
 You can safely skip this section if you don't want a quick look at the gory details of how Fenster handles keyboard input on macOS in particular, but I was curious so here's what I discovered. Fenster stores key presses retrieved from the OS event loop in `int keys[256]` and `int mod` declared in the `fenster` struct (the type of our `window` value) in `fenster.h`. Each platform layer has its own `FENSTER_KEYCODES` array. On macOS it is:
 
 ```c
@@ -399,7 +399,7 @@ and in `main`:
         nextFrameTime += 1000.0 / FPS;
 ```
 
-## Bug fixes
+# Bug fixes
 I noticed that `frameStartMS` declared at the top of the `while` loop in `main` is not doing much lifting. I might need such a variable later, but for now we can remove its declaration and change the FPS check loop to use `fenster_time()` directly in both cases to grab the current and not stale system time:
 
 ```c

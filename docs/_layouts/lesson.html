@@ -68,7 +68,7 @@
   <!-- Build TOC from heading ids that kramdown generates automatically -->
   <script>
     (function () {
-      var headings = document.querySelectorAll('main h2, main h3');
+      var headings = document.querySelectorAll('main h1, main h2, main h3');
       var tocList  = document.getElementById('toc-list');
       var sidebar  = document.querySelector('.toc-sidebar');
       if (!tocList || headings.length === 0) {
@@ -78,7 +78,8 @@
       headings.forEach(function (h) {
         if (!h.id) return;
         var li = document.createElement('li');
-        li.className = h.tagName === 'H3' ? 'toc-h3' : 'toc-h2'; // indent h3 via CSS
+        var classMap = { 'H1': 'toc-h1', 'H2': 'toc-h2', 'H3': 'toc-h3' };
+        li.className = classMap[h.tagName] || 'toc-h2';
         var a = document.createElement('a');
         a.href = '#' + h.id;
         a.textContent = h.textContent;
