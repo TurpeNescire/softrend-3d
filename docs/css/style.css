@@ -85,6 +85,8 @@ main ul ul {
 #toc-list li.toc-h1 { padding-left: 0; }
 #toc-list li.toc-h2 { padding-left: 0.75rem; }
 #toc-list li.toc-h3 { padding-left: 1.5rem; }
+#toc-list li.toc-h2::before { content: '● '; font-size: 8px; vertical-align: middle; }
+#toc-list li.toc-h3::before { content: '○ '; font-size: 8px; vertical-align: middle; }
 
 /* Below breakpoint: stack TOC above content */
 @media (max-width: 768px) {
