@@ -16,5 +16,12 @@ endif
 $(BIN): $(SRC)
 	$(CC) $(CFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
+asm:
+	$(CC) -I include -O2 -g -S -fverbose-asm $(SRC) -o src/main.s
+
+dump:
+	$(CC) $(CFLAGS) -g $(SRC) -o $(BIN)_debug $(LDFLAGS)
+	objdump --source $(BIN)_debug > src/main.dump
+
 clean:
 	rm -f $(BIN)

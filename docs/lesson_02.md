@@ -8,14 +8,14 @@ next_lesson: /lesson_03
 
 ![Lesson 02 Animated Triangle]({{ '/images/lesson_02_animated_triangle.gif' | relative_url }}){: width="100%"}
 
-## Clean up old code
+## Clean up old timing code
 We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up.
 
 [Lesson 02: Initial main.c](https://github.com/TurpeNescire/softrend-3d/tree/acf002b72695acdcf68a3dc822e6e2e747339ab3/src/main.c)
 
 ## Drawing our first triangle
 
-Drawing anything to the screen at this point involves setting the color value of our `buffer` pixels. Because we declared `buffer` in global scope, it is automatically 0 initialized along with all other global scoped variables, which as we saw means the color black when all color channels are set to 0 in RGB. We have created a window `WIDTH` pixels wide and `HEIGHT` pixels tall, so there are 600x400 or 240,000 pixels in our window. We could have declared `buffer` as a row-major multi-dimensional array, `uint32_t buffer[HEIGHT][WIDTH]` which is of type `uint32_t **`, and assigned `window.buf = (uint32_t *)buffer;`. This simplifies the notation for element access, allowing us to access elements with `buffer[y][x]`, but hides the flat nature of the memory array and requires us to remember the array is row major. I think both forms compile to the same machine code, so it's mostly a matter of preference - I like using a flat array. For the flat buffer array we can create a convenience macro for getting and setting pixel information, and add a new color constant `WHITE` for later use:
+Drawing anything to the screen at this point involves setting the color value of the individual `buffer` pixels. Because we declared `buffer` in global scope, it is automatically 0 initialized along with all other global scoped variables, which as we saw means the color black when all color channels are set to 0 in RGB. We have created a window `WIDTH` pixels wide and `HEIGHT` pixels tall, so there are 600x400 or 240,000 pixels in our window. We could have declared `buffer` as a row-major multi-dimensional array, `uint32_t buffer[HEIGHT][WIDTH]` which is of type `uint32_t **`, and assigned `window.buf = (uint32_t *)buffer;`. This simplifies the notation for element access, allowing us to access elements with `buffer[y][x]`, but hides the flat nature of the memory array and requires us to remember the array is row major. Both forms should compile to the same machine code, so it's mostly a matter of preference - I like using a flat array. For the flat buffer array we can create a convenience macro for getting and setting pixel information, and add a new color constant `WHITE` for later use:
 
 ```c
 #define FPS 60 // Targeted frame rate (frequency in hz)
@@ -280,7 +280,7 @@ When both `dx` and `dy` are 0, we have a degenerate edge where both vertices are
 [Click here](https://github.com/TurpeNescire/softrend-3d/tree/3e64b7a657379f022f4c1e89039be450f2365c4e/src/main.c) for the current `main.c`
 
 ### drawLine edge case testing
-`drawLine` should now handle all edges cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. We're also going to want more colors in the future, so I created an array of color values `colors` and an enum `Color` to index them. Place this where we currently have the #define for WHITE:
+`drawLine` should now handle all types of lines cleanly, but it's best to check. If we divide the screen up into a 3x2 grid and put a triangle in each, we can fit six example triangles on the screen at once. We're also going to want more colors in the future, so I created an array of color values `colors` and an enum `Color` to index them. Place this where we currently have the #define for WHITE:
 
 ```c
 typedef enum {
@@ -310,13 +310,7 @@ uint32_t colors[] = {
 };
 ```
 
-
-<figure>
-  <img src="{{ '/images/lesson_02_triangle_colors.png' | relative_url }}" alt="Triangle with crazy colors" style="width:100%">
-  <figcaption>Pretty triangle</figcaption>
-</figure>
-
-Not quite what I want. Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` calls with:
+Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` calls with:
 
 ```c
     // x-dominant (wide/flat)        — top-left cell
@@ -356,12 +350,32 @@ Not quite what I want. Replace the `x0`/`x1`/`x2` etc. assignments and the three
 ```
 
 <figure>
-  <img src="{{ 'images/lesson_02_triangle_edge_cases_colored.png' | relative_url }}" alt="Various colored triangle edge cases" style="width:100%">
-  <figcaption>Various colored triangle edge cases</figcaption>
+  <img src="{{ 'images/lesson_02_triangle_test_cases_colored.png' | relative_url }}" alt="Various colored triangle test cases" style="width:100%">
+  <figcaption>Various colored triangle test cases</figcaption>
 </figure>
 
 ## Key handling
-Soon we'll be need more complex keyboard and mouse input handling, but for now, I just want to add the Escape key and Command+Q/Ctrl+Q for closing the program. Fenster exposes 
+Soon we'll be needing more complex keyboard and mouse input handling, but for now, I just want to add the Escape key and Command+Q/Ctrl+Q for closing the program. 
+
+### Fenster keyhandling minutiae
+You can safely skip this section if you don't want a quick look at the gory details of how Fenster handles keyboard input on macOS in particular, but I was curious so here's what I discovered. Fenster stores key presses retrieved from the OS event loop in `int keys[256]` and `int mod` declared in the `fenster` struct (the type of our `window` value) in `fenster.h`. Each platform layer has its own `FENSTER_KEYCODES` array. On macOS it is:
+
+```c
+static const uint8_t FENSTER_KEYCODES[128] = {65,83,68,70,72,71,90,88,67,86,0,66,81,87,69,82,89,84,49,50,51,52,54,53,61,57,55,45,56,48,93,79,85,91,73,80,10,76,74,39,75,59,92,44,47,78,77,46,9,32,96,8,0,27,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,26,2,3,127,0,5,0,4,0,20,19,18,17,0};
+```
+
+macOS returns these virtual hardware key codes for each key, such as 0 for 'A', 10 for 'B', 8 for 'C' - in other words, not in ASCII order. Escape is 53, Command (CMD) is 55, left control is 59. When Fenster reads a key press or release event it runs inside `fenster_loop`:
+
+```c
+NSUInteger k = msg(NSUInteger, ev, "keyCode");
+f->keys[k < 127 ? FENSTER_KEYCODES[k] : 0] = evtype == 10;
+NSUInteger mod = msg(NSUInteger, ev, "modifierFlags") >> 17;
+f->mod = (mod & 0xc) | ((mod & 1) << 1) | ((mod >> 1) & 1);
+```
+
+`k` stores the macOS virtual key code, and the `keys` indexing expression `k < 127` checks that the keycode is between 0-126 so we don't index into a non-existant `FENSTER_KEYCODES` element. The ternary expression returns the ASCII code in `FENSTER_KEYCODES` or 0 if `k` is out of bounds. That `keys` element is then set to 1 if `evtype` is 10 or 0 otherwise. When `evtype` is 10 it indicates the key is being held, and 11 means not being held. An example helps clarify this. If the escape key (mac key code 53) is pressed, Fenster sets `f->keys[FENSTER_KEYCODES[53]]` which is `f->keys[27]` to 1. If escape is released that value is cleared to 0. Worth noting Fenster only tracks alphabetic letters using the upper case ASCII codes 65-90, it's up to us to interpret if they're upper case or not depending on if the shift modifier is held, or if we want to extend Fenster to handle other capabilities like tracking whether caps-lock is on.
+
+`mod` stores the modifier keys as bit flags. Fenster performs a bit shift to place bits 17-20 down to 0-3. Bit 0 is shift, bit 1 is control, bit 2 is opt/alt and bit 3 is command. Outside of macOS, most toolkits and applications place control as the lowest modifier bit, so Fenster swaps the order of bits 0 and 1 so that control is in bit 0 and shift in bit 1 (`((mod & 1) << 1)` and `((mod >> 1) & 1)`) and keeps bits 2 and 3 the same (`mod & 0xc`), logical or'ing the bits together. If `<Cmd+Q>` is pressed, `f->keys['Q']` is 1 and `f->mod` is 8 (corresponding to only bit 3 being set to 1).
 
 ```c
 // Returns 1 if the application should quit, 0 otherwise
@@ -408,3 +422,4 @@ It's good to always keep your comments up to date. Since this is an educational 
 //       y = topY + (x - leftX) * slope for each pixel
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 ```
+

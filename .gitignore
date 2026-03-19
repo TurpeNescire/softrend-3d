@@ -1,5 +1,5 @@
 # project specific
-softrend
+softrend*
 temp/
 
 # macOS
@@ -27,3 +27,5 @@ bin/
 # Clang
 *.dSYM/
 
+# objdump
+*.dump
