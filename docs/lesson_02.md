@@ -94,6 +94,7 @@ Now we have the side length `dy` scaled by the ratio `t` equal to the displaceme
 Grounding this in an example from the video, with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
 
 ```console
+Solving for (x=7, y=?)
 dx = 14, dy = 7
 (x0, y0) = (2, 10)
 t  = (x - x0) / dx = (7 - 2) / 14  = 5/14 ≈ 0.36
@@ -101,6 +102,20 @@ y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
 ```
 
 We derived the interpolation formula starting from a geometric proportion of triangle sides. Typically the formula is derived algebraically from the *point-slope form* of a line, `y = y0 + m(x - x0)`, by substituting `m = dy/dx` and letting `t = (x - x0)/dx`. Hopefully having a visual grounding is helpful in understanding what the `t` ratio is and how it is used to scale `dy` at various points along the line, and why we add `y0` back to anchor `y` to an actual position and not as a relative displacement.
+
+One issue I had early on when just being presented with the interpolation algorithm was trying to figure out what each of the values meant, and why we added `y0` to the formula, and why `y0` and not `y1`. Hopefully this helps clarify what these values are, and  you can answer those questions I had.
+
+For example, we could use the second endpoint as our anchor resulting in different sides for our initial proportion, with `(x1, y1)` in place of `(x0, y0)` and `t` using `(x1 - x) / dx` instead of `(x - x0) / dx)` so that `y` now becomes `y1 + t * dy`. With the example we just gave above with the same endpoints and `x` value of 7:
+
+```console
+Solving for (x=7, y=?)
+dx = 14, dy = 7
+(x1, y1) = (16, 17)
+t  = (x - x1) / dx = (7 - 16) / 14  = -9/14 ≈ -0.64
+y  = y1 + t * dy   = 17 + -0.64 * 7         ≈ 12.5
+```
+
+We have a new `t` value and anchor from `y1` instead of `y0`, but end up with the same `y` value.
 
 ## Drawing edges with linear interpolation
 Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself.
@@ -386,6 +401,8 @@ f->mod = (mod & 0xc) | ((mod & 1) << 1) | ((mod >> 1) & 1);
 
 `mod` stores the modifier keys as bit flags. Fenster performs a bit shift to place bits 17-20 down to 0-3. Bit 0 is shift, bit 1 is control, bit 2 is opt/alt and bit 3 is command. Outside of macOS, most toolkits and applications place control as the lowest modifier bit, so Fenster swaps the order of bits 0 and 1 so that control is in bit 0 and shift in bit 1 (`((mod & 1) << 1)` and `((mod >> 1) & 1)`) and keeps bits 2 and 3 the same (`mod & 0xc`), logical or'ing the bits together. If `<Cmd+Q>` is pressed, `f->keys['Q']` is 1 and `f->mod` is 8 (corresponding to only bit 3 being set to 1).
 
+We can define a function `handleInput` to take our `window` value and read the current key presses, returning whether the application should should stay open (0) or close (1). I placed the definition right before `main`:
+
 ```c
 // Returns 1 if the application should quit, 0 otherwise
 int handleInput(struct fenster *f) {
@@ -394,6 +411,8 @@ int handleInput(struct fenster *f) {
     if (f->keys['Q'] && (f->mod & 1)) return 1;      // Ctrl+Q (Windows/Linux)
     return 0;
 }
+
+int main()
 ```
 
 and in `main`:
@@ -449,9 +468,9 @@ y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
 
 ```c
 // x dominant
-int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x
+int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
 // y dominant
-int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y
+int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 ```
 
 <figure>
