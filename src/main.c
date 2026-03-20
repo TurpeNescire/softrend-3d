@@ -65,6 +65,8 @@ uint32_t colors[] = {
 
 uint32_t buffer[WIDTH * HEIGHT];
 
+float LERP_INT_ROUNDING = 0.5f;
+
 // Draw a straight line from one endpoint in the buffer to another
 // Does not do bounds checking - up to the caller to pass valid indices
 // TODO: for performance we can switch to Bresenham's later if needed
@@ -92,18 +94,22 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     if (xDominant) {
         dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
         for (int x = leftX; x <= rightX; x++) {
-            float t = (float)(x - leftX) / dx;   // progress along x: 0 at leftX, 1 at rightX
-            int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x
+            float t = (float)(x - leftX) / dx;                // progress along x: 0 at leftX, 1 at rightX
+            int y = (int)(topY + t * dy + LERP_INT_ROUNDING); // interpolated y at this x, rounded
             PIXEL(x, y) = color;
         }
     } else {
         dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
         for (int y = topY; y <= bottomY; y++) {
             float t = (float)(y - topY) / dy;     // progress along y: 0 at topY, 1 at bottomY
-            int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y
+            int x = (int)(leftX + t * dx + LERP_INT_ROUNDING); // interpolated x at this y, rounded
             PIXEL(x, y) = color;
         }
     }
+}
+
+void clearBuffer(uint32_t color) {
+    for (int i = 0; i < WIDTH * HEIGHT; i++) buffer[i] = color;
 }
 
 // Returns 1 if the application should quit, 0 otherwise
@@ -111,6 +117,9 @@ int handleInput(struct fenster *f) {
     if (f->keys[27]) return 1;                  // Escape
     if (f->keys['Q'] && (f->mod & 8)) return 1; // Cmd+Q  (macOS)
     if (f->keys['Q'] && (f->mod & 1)) return 1; // Ctrl+Q (Windows/Linux)
+
+    LERP_INT_ROUNDING = f->keys['I'] ? 0.0f : 0.5f;
+
     return 0;
 }
 
@@ -123,41 +132,6 @@ int main()
         .buf    = buffer
     };
     
-    // x-dominant (wide/flat)        — top-left cell
-    drawLine( 20, 170, 180, 170, colors[RED]);
-    drawLine(180, 170, 100,  30, colors[RED]);
-    drawLine(100,  30,  20, 170, colors[RED]);
-
-    // y-dominant (tall/narrow)      — top-middle cell
-    drawLine(270, 180, 330, 180, colors[GREEN]);
-    drawLine(330, 180, 300,  20, colors[GREEN]);
-    drawLine(300,  20, 270, 180, colors[GREEN]);
-
-    // one vertical edge              — top-right cell
-    drawLine(410,  20, 410, 180, colors[BLUE]);
-    drawLine(410, 180, 580, 100, colors[BLUE]);
-    drawLine(580, 100, 410,  20, colors[BLUE]);
-
-    // one horizontal edge            — bottom-left cell
-    drawLine( 20, 210, 180, 210, colors[YELLOW]);
-    drawLine(180, 210, 100, 380, colors[YELLOW]);
-    drawLine(100, 380,  20, 210, colors[YELLOW]);
-
-    // right triangle                 — bottom-middle cell
-    drawLine(220, 220, 220, 380, colors[CYAN]);
-    drawLine(220, 380, 380, 380, colors[CYAN]);
-    drawLine(380, 380, 220, 220, colors[CYAN]);
-
-    // two coincident vertices        — bottom-right cell
-    drawLine(500, 220, 500, 220, colors[MAGENTA]);
-    drawLine(500, 220, 420, 370, colors[MAGENTA]);
-    drawLine(420, 370, 500, 220, colors[MAGENTA]);
-
-    // single point — tucked in corner of bottom-right cell
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
-
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 
@@ -173,14 +147,54 @@ int main()
         // Time since last FPS print
         int64_t elapsedMS = fenster_time() - secondStartMS;
         if (elapsedMS >= 1000) {
-            printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
+            printf("ROUND [%s] - fps: %.1f\n",
+                   LERP_INT_ROUNDING ? " ON" : "OFF",
+                   frameCount * 1000.0f / elapsedMS);
             frameCount    = 0;
             secondStartMS = fenster_time();
         }
 
         if (handleInput(&window)) break;
 
-        // sleep until we reach desired FRAME_TIME 
+        clearBuffer(BLACK);
+
+        // x-dominant (wide/flat)        — top-left cell
+        drawLine( 20, 170, 180, 170, colors[RED]);
+        drawLine(180, 170, 100,  30, colors[RED]);
+        drawLine(100,  30,  20, 170, colors[RED]);
+
+        // y-dominant (tall/narrow)      — top-middle cell
+        drawLine(270, 180, 330, 180, colors[GREEN]);
+        drawLine(330, 180, 300,  20, colors[GREEN]);
+        drawLine(300,  20, 270, 180, colors[GREEN]);
+
+        // one vertical edge              — top-right cell
+        drawLine(410,  20, 410, 180, colors[BLUE]);
+        drawLine(410, 180, 580, 100, colors[BLUE]);
+        drawLine(580, 100, 410,  20, colors[BLUE]);
+
+        // one horizontal edge            — bottom-left cell
+        drawLine( 20, 210, 180, 210, colors[YELLOW]);
+        drawLine(180, 210, 100, 380, colors[YELLOW]);
+        drawLine(100, 380,  20, 210, colors[YELLOW]);
+
+        // right triangle                 — bottom-middle cell
+        drawLine(220, 220, 220, 380, colors[CYAN]);
+        drawLine(220, 380, 380, 380, colors[CYAN]);
+        drawLine(380, 380, 220, 220, colors[CYAN]);
+
+        // two coincident vertices        — bottom-right cell
+        drawLine(500, 220, 500, 220, colors[MAGENTA]);
+        drawLine(500, 220, 420, 370, colors[MAGENTA]);
+        drawLine(420, 370, 500, 220, colors[MAGENTA]);
+
+        // single point — tucked in corner of bottom-right cell
+        drawLine(570, 370, 570, 370, colors[ORANGE]);
+        drawLine(570, 370, 570, 370, colors[ORANGE]);
+        drawLine(570, 370, 570, 370, colors[ORANGE]);
+
+
+        // Sleep until we reach desired FRAME_TIME 
         nextFrameTime += 1000.0 / FPS;
         double remainingMS = nextFrameTime - (double)fenster_time();
         if (remainingMS > 0) fenster_sleep(remainingMS);

@@ -6,7 +6,10 @@ prev_lesson: /lesson_01
 next_lesson: /lesson_03
 ---
 
-![Lesson 02 Animated Triangle]({{ '/images/lesson_02_animated_triangle.gif' | relative_url }}){: width="100%"}
+<figure>
+  <img src="{{ '/images/lesson_02_animated_triangle.gif' | relative_url }}" alt="Lesson 02 Animated Triangle" style="width:100%">
+  <figcaption>Your caption here</figcaption>
+</figure>
 
 # Clean up old timing code
 We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up.
@@ -478,13 +481,8 @@ int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 It's hard to see the difference unless you overlay the images and flip between them quickly, but the second is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slit shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position.
 
 <figure>
-  <img src="{{ 'images/lesson_02_triangle_test_cases_colored.png' | relative_url }}" alt="Test cases without interpolation rounding" style="width:100%">
-  <figcaption>Triangle test cases without rounded interpolation values</figcaption>
-</figure>
-
-<figure>
-  <img src="{{ 'images/lesson_02_triangle_test_cases_colored_rounded.png' | relative_url }}" alt="Test cases with interpolation rounding" style="width:100%">
-  <figcaption>Triangle test cases with rounded interpolation values</figcaption>
+  <img src="{{ '/images/lesson_02_triangles_rounding.gif' | relative_url }}" alt="Alternating triangles w/ and w/out integer rounding lerp" style="width:100%">
+  <figcaption>Triangle edge lerping w/ and w/out integer rounding</figcaption>
 </figure>
 
 # Github Source Commit
