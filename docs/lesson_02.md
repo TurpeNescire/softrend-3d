@@ -8,11 +8,11 @@ next_lesson: /lesson_03
 
 <figure>
   <img src="{{ '/images/lesson_02_animated_triangle.gif' | relative_url }}" alt="Lesson 02 Animated Triangle" style="width:100%">
-  <figcaption>Your caption here</figcaption>
+  <figcaption>Lesson 2: Drawing to the screen</figcaption>
 </figure>
 
 # Clean up old timing code
-We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up.
+We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up. I also removed the unused `FRAME_TIME` macro.
 
 [Lesson 02: Initial main.c](https://github.com/TurpeNescire/softrend-3d/tree/acf002b72695acdcf68a3dc822e6e2e747339ab3/src/main.c)
 
@@ -34,7 +34,9 @@ uint32_t buffer[WIDTH * HEIGHT];
 
 This removes any concern over remembering whether we're using row or column major ordering, or remembering how to write the indexing expression for each element.
 
-The first step to drawing a triangle is to determine its vertices. If we want a 300 pixel wide, 200 pixel tall isosceles triangle that fits nicely in our screen, we can use the following declarations followed by calling `PIXEL` for each point:
+The first step to drawing a triangle is to determine its vertices. Note that PIXEL(0, 0) that addresses our first pixel in the buffer is centered in the top-left of the screen. Y increases downwards, unlike in a standard Cartesian system where +y grows upwards. A `y` value of 300 is "below" a `y` value of 100. We'll cover coordinate systems in more depth later, for now just note that we're dealing with "screen space" coordinates for `buffer` pixel positions, with +y growing down and +x to the right.
+
+If we want a 300 pixel wide, 200 pixel tall isosceles triangle that fits nicely in our screen, we can use the following declarations followed by calling `PIXEL` for each point:
 
 ```c
         .buf    = buffer
@@ -125,7 +127,7 @@ We have a new `t` value and anchor from `y1` instead of `y0`, but end up with th
 ## Drawing edges with linear interpolation
 Linear interpolation is one of the most useful algorithms in graphics programming and you'll see and use it often. It's worth spending the effort to understand it now. Before moving on, I would recommend pausing and trying to implement the line drawing algorithm to draw a triangle by yourself before reading my version.
 
-My first naieve attempt looked like this:
+My first naive attempt looked like this:
 
 ```c
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
@@ -266,20 +268,20 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 }
 ```
 
-This got rid of the gaps on the second edge from `(300, 50)` to `(350, 350)` for the `drawLine(x1, y1, x2, y2, WHITE)` call, but it printed that side twice. If you look at the third edge called with `drawLine(x2, y2, x0, y0, WHITE)`, the debug printing shows its `x` values also increasing from `(300, 50)` to `(350, 350)`, just like the second edge. We computed the `dx` value from the absolute difference of `x1 - x0`, but doing so lost the sign of `dx`. If we're drawing the edge starting from `(300, 50)` and ending at `(250, 350)` then the difference between `leftX` and `rightX` is -50, not 50 in the `!xDominant` branch. When we swap x and y positions, the sign of the opposite axis's difference becomes stale and needs to be recalculated. We can add a line to each branch doing this:
+This got rid of the gaps on the second edge from `(300, 50)` to `(350, 350)` for the `drawLine(x1, y1, x2, y2, WHITE)` call, but it printed that side twice. If you look at the third edge called with `drawLine(x2, y2, x0, y0, WHITE)`, the debug printing shows its `x` values also increasing from `(300, 50)` to `(350, 350)`, just like the second edge. We computed the `dx` value from the absolute difference of `x1 - x0`, but doing so lost the sign of `dx`. If we're drawing the edge starting from `(300, 50)` and ending at `(250, 350)` then the difference between `leftX` and `rightX` is -50, not 50 in the `!xDominant` branch. When we swap x and y positions, the sign of the opposite axis's difference becomes stale and needs to be recalculated. Also, we took the absolute value of each difference to be able to compute the dominant axis with `dx >= dy`. For both reasons we need to recompute the minor-axis' delta from the sorted endpoints to get the correct line direction. We can add a line to each branch doing this:
 
 ```c
     if (xDominant) {
+        dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
         for (int x = leftX; x <= rightX; x++) {
-            dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
             float t = (float)(x - leftX) / dx; // progress along x: 0 at leftX, 1 at rightX
             int y = (int)(topY + t * dy);      // interpolated y at this x
             printf("PIXEL(%d, %d)\n", x, y);
             PIXEL(x, y) = color;
         }
     } else {
+        dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
         for (int y = topY; y <= bottomY; y++) {
-            dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
             float t = (float)(y - topY) / dy; // progress along y: 0 at topY, 1 at bottomY
             int x = (int)(leftX + t * dx);    // interpolated x at this y
             printf("PIXEL(%d, %d)\n", x, y);
@@ -373,9 +375,9 @@ Replace the `x0`/`x1`/`x2` etc. assignments and the three single `drawLine` call
     drawLine(420, 370, 500, 220, colors[MAGENTA]);
 
     // single point — tucked in corner of bottom-right cell
-    drawLine(570, 370, 570, 370, colors[GRAY]);
-    drawLine(570, 370, 570, 370, colors[GRAY]);
-    drawLine(570, 370, 570, 370, colors[GRAY]);
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
+    drawLine(570, 370, 570, 370, colors[ORANGE]);
 ```
 
 <figure>
@@ -460,13 +462,13 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 ```
 
 ## drawLine rounding issue
-Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Integer conversions floor the resulting value. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
+Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Remember that positive integer conversions floor the resulting value towards 0 and ceil negative values towards 0. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
 
 ```console
 dx = 14, dy = 7
 (x0, y0) = (2, 10)
 t  = (x - x0) / dx = (7 - 2) / 14  = 5/14 ≈ 0.36
-y  = y0 + t * dy   = 10 + 0.36 * 7        ≈ 12.5
+y  = y0 + t * dy   = 10 + 0.36 * 7        = 12.5
 ```
 
 `y` is floored from 12.5 to 12. If we want a more accurate pixel value, we can add 0.5 to both branch calculations:
@@ -478,7 +480,9 @@ int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
 int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 ```
 
-It's hard to see the difference unless you overlay the images and flip between them quickly, but the second is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slit shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position.
+Because the example slope is 1/2, half pixel positions will always be exactly at a .5 value and rounded up. For lines with a steep or shallow slope, the effect is more pronounced. For example, for a different line where `x` is 7, `t` is 0.7 and `y0` is 0, then `y` will be 4.9. Adding .5 to `y` gives 5.4, and the integer truncation changes it to 5, which is far closer to the true position than the 4 it would have been. Rounding buys us more accurate pixel positioning, with the greatest improvement when the closer the fractional part of `y` (or `x`, depending on the dominant axis) is large. At 4.9 the integer flooring is off by 0.9 pixels, but rounding is only off by 0.1 pixels.
+
+Applying the rounding to our multiple triangles example, it's hard to see the difference unless you flip between the triangles both with and without rounding, but the interpolation with rounding is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slight shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position. The .gif below shows the triangles with edge lerping with rounding first, then without.
 
 <figure>
   <img src="{{ '/images/lesson_02_triangles_rounding.gif' | relative_url }}" alt="Alternating triangles w/ and w/out integer rounding lerp" style="width:100%">

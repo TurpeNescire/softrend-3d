@@ -48,7 +48,7 @@ int main()
 }
 ```
 
-To compile, run the command `cc -I include src/main.c -o softrend -framework cocoa` on Mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile that you can download from the project source at the end of the lesson, and compile by typing `make` with the project Makefile in the root directory, and run the binary with `./softrend`.
+To compile, run the command `cc -I include src/main.c -o softrend -framework cocoa` on Mac, `cc -I include src/main.c -o softrend -lX11` on Linux and `cc -I include src/main.c -o softrend -lgdi32` on Windows. Going forward, I'll be using a cross-platform Makefile, you can [download it here](https://github.com/TurpeNescire/softrend-3d/blob/f66f63189ce5ccb2f95687dccc892918152e248d/Makefile) and compile by typing `make` with the project Makefile in the root directory, and run the binary with `./softrend`.
 
 You should see a 600x400 window pop up with all black contents and a window title of "Hello, World!":
 
@@ -93,7 +93,7 @@ and then inside `main` we can fill the buffer once before the Fenster window loo
 ### The Fenster event loop
 Like most windowing libraries, Fenster continuously loops over the system event queue, though in as simple a manner as possible, only presenting the window dimensions and title and framebuffer to the system and grabbing mouse and keyboard input values during each loop. If we only call `fenster_open(&window)` without continuously calling `fenster_loop(&window)` the application window will never open on macOS, while on Linux and Windows it should open but be unresponsive.
 
-The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration. On macOS the window's draw rate is tied to the display refresh rate by the Quartz compositor's vsync; on Linux (X11) and Windows (GDI) it runs uncapped. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
+The while loop calling `fenster_loop()` triggers a framebuffer redraw each iteration. Since Fenster writes pixels directly from RAM to the display system, the GPU rendering pipeline is not involved. To track the frame time of the loop we can use `fenster_time()`, which returns the number of milliseconds since the Unix epoch (time since 00:00:00 UTC on 1 January 1970). For example:
 
 ```c
     // Open a system window using the given window specifications

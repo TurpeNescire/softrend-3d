@@ -194,7 +194,7 @@ int main()
         drawLine(570, 370, 570, 370, colors[ORANGE]);
 
 
-        // Sleep until we reach desired FRAME_TIME 
+        // Sleep until we reach desired frame time
         nextFrameTime += 1000.0 / FPS;
         double remainingMS = nextFrameTime - (double)fenster_time();
         if (remainingMS > 0) fenster_sleep(remainingMS);
