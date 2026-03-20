@@ -12,7 +12,17 @@ next_lesson: /lesson_03
 </figure>
 
 # Clean up old timing code
-We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up. I also removed the unused `FRAME_TIME` macro.
+We're not going to need to print the channel values for a buffer pixel again, so we can remove that. I changed the timing code to be more accurate. We cap the renderer to the target frame rate by initializing `nextFrameTime` to `fenster_time()` and advancing it by the desired frame time (1000ms / FPS) each frame loop, sleeping until it's reached. If the OS wakes us late, the next sleep is shortened by exactly the amount of oversleep, and if `remainingMS > 0` fails the check, we don't sleep and the next frame will also have a shorter sleep until it catches up. I also removed the unused `FRAME_TIME` macro. The new code at the end of `main` looks like:
+
+```c
+        // Sleep until we reach desired frame time
+        nextFrameTime += 1000.0 / FPS;
+        double remainingMS = nextFrameTime - (double)fenster_time();
+        if (remainingMS > 0) fenster_sleep(remainingMS);
+    }
+```
+
+This still has a minor issue when our program stalls because of system thrashing. `nextFrameTime` falls far behind the `fenster_time()` clock and our rendering loop will catch-up without sleeping until it catches up. This would look like the rendering freezing followed by a rapid burst of frames rendered far quicker than our frame rate cap until `remainingMS` is no longer negative. An easy solution would be to clamp `nextFrameTime` to the the current `fenster_time()` when we're more than a frame (`1000 / FPS`) behind. We'll tackle this later when we actually have something substantial to process during our render loop and this becomes more visible. 
 
 [Lesson 02: Initial main.c](https://github.com/TurpeNescire/softrend-3d/tree/acf002b72695acdcf68a3dc822e6e2e747339ab3/src/main.c)
 
@@ -461,6 +471,19 @@ It's good to always keep your comments up to date. Since this is an educational 
 void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
 ```
 
+## frameTime sleep comment
+At the top of the lesson we talked about adding a `TODO` comment to the frame sleep code at the end of the render loop in `main`. `TODO` is a common keyword that most syntax highlighters will highlight so the comment stands out. 
+
+```c
+        // Sleep until we reach desired frame time
+        // TODO: if nextFrameTime falls far behind due to program stall, clamp it
+        //       forward instead of spinning no-sleep frames to catch up
+        nextFrameTime += 1000.0 / FPS;
+        double remainingMS = nextFrameTime - (double)fenster_time();
+        if (remainingMS > 0) fenster_sleep(remainingMS);
+    }
+```
+
 ## drawLine rounding issue
 Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Remember that positive integer conversions floor the resulting value towards 0 and ceil negative values towards 0. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
 
@@ -480,7 +503,7 @@ int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
 int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 ```
 
-Because the example slope is 1/2, half pixel positions will always be exactly at a .5 value and rounded up. For lines with a steep or shallow slope, the effect is more pronounced. For example, for a different line where `x` is 7, `t` is 0.7 and `y0` is 0, then `y` will be 4.9. Adding .5 to `y` gives 5.4, and the integer truncation changes it to 5, which is far closer to the true position than the 4 it would have been. Rounding buys us more accurate pixel positioning, with the greatest improvement when the closer the fractional part of `y` (or `x`, depending on the dominant axis) is large. At 4.9 the integer flooring is off by 0.9 pixels, but rounding is only off by 0.1 pixels.
+Because the example slope is 1/2, half pixel positions will always be exactly at a .5 value and rounded up. For lines with a steep or shallow slope, the effect is more pronounced. For example, for a different line where `x` is 7, `t` is 0.7 and `y0` is 0, then `y` will be 4.9. Adding .5 to `y` gives 5.4, and the integer truncation changes it to 5, which is far closer to the true position than the 4 it would have been. At 4.9 the integer flooring is off by 0.9 pixels, but rounding is only off by 0.1 pixels. Rounding buys us more accurate pixel positioning, with the greatest improvement when the fractional part of `y` (or `x`, depending on the dominant axis) is large.
 
 Applying the rounding to our multiple triangles example, it's hard to see the difference unless you flip between the triangles both with and without rounding, but the interpolation with rounding is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slight shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position. The .gif below shows the triangles with edge lerping with rounding first, then without.
 
