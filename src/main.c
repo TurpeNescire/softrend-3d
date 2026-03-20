@@ -176,9 +176,7 @@ int main()
         // Time since last FPS print
         int64_t elapsedMS = fenster_time() - secondStartMS;
         if (elapsedMS >= 1000) {
-            printf("ROUND [%s] - fps: %.1f\n",
-                   LERP_INT_ROUNDING ? " ON" : "OFF",
-                   frameCount * 1000.0f / elapsedMS);
+            printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
             frameCount    = 0;
             secondStartMS = fenster_time();
         }
