@@ -513,5 +513,5 @@ Applying the rounding to our multiple triangles example, it's hard to see the di
 </figure>
 
 # Github Source Commit
-[Project Source: Lesson 02](https://github.com/TurpeNescire/softrend-3d/tree/b6857806cd6e949d4d506e3e383777343d85b7d3/src/main.c)
+[Project Source: Lesson 02](https://github.com/TurpeNescire/softrend-3d/tree/a58045e8de50180d64b6574c5c8d445507221d84/src/main.c)
 

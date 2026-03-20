@@ -65,8 +65,6 @@ uint32_t colors[] = {
 
 uint32_t buffer[WIDTH * HEIGHT];
 
-float LERP_INT_ROUNDING = 0.5f;
-
 // Draw a straight line from one endpoint in the buffer to another
 // Does not do bounds checking - up to the caller to pass valid indices
 // TODO: for performance we can switch to Bresenham's later if needed
@@ -94,15 +92,15 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     if (xDominant) {
         dy = bottomY - topY; // recompute minor-axis delta from the sorted endpoints
         for (int x = leftX; x <= rightX; x++) {
-            float t = (float)(x - leftX) / dx;                // progress along x: 0 at leftX, 1 at rightX
-            int y = (int)(topY + t * dy + LERP_INT_ROUNDING); // interpolated y at this x, rounded
+            float t = (float)(x - leftX) / dx;   // progress along x: 0 at leftX, 1 at rightX
+            int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
             PIXEL(x, y) = color;
         }
     } else {
         dx = rightX - leftX; // recompute minor-axis delta from the sorted endpoints
         for (int y = topY; y <= bottomY; y++) {
             float t = (float)(y - topY) / dy;     // progress along y: 0 at topY, 1 at bottomY
-            int x = (int)(leftX + t * dx + LERP_INT_ROUNDING); // interpolated x at this y, rounded
+            int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
             PIXEL(x, y) = color;
         }
     }
