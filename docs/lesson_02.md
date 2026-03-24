@@ -485,7 +485,7 @@ At the top of the lesson we talked about adding a `TODO` comment to the frame sl
 ```
 
 ## drawLine rounding issue
-Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Remember that positive integer conversions floor the resulting value towards 0 and ceil negative values towards 0. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
+Our linear interpolating algorithm branches to solve for a given `x` or `y` value on the line depending on which axis is more dominant. In both cases, the resulting value is stored as an integer from a floating point calculation. Remember that positive floats are integer cast the resulting value is floored towards 0 and negative values are rounded up towards 0. In the [example above](#linear-interpolation) with endpoints `(2, 10)` and `(16, 17)` and `x = 7` we can find `y` at that point using:
 
 ```console
 dx = 14, dy = 7
@@ -503,7 +503,7 @@ int y = (int)(topY + t * dy + 0.5f); // interpolated y at this x, rounded
 int x = (int)(leftX + t * dx + 0.5f); // interpolated x at this y, rounded
 ```
 
-Because the example slope is 1/2, half pixel positions will always be exactly at a .5 value and rounded up. For lines with a steep or shallow slope, the effect is more pronounced. For example, for a different line where `x` is 7, `t` is 0.7 and `y0` is 0, then `y` will be 4.9. Adding .5 to `y` gives 5.4, and the integer truncation changes it to 5, which is far closer to the true position than the 4 it would have been. At 4.9 the integer flooring is off by 0.9 pixels, but rounding is only off by 0.1 pixels. Rounding buys us more accurate pixel positioning, with the greatest improvement when the fractional part of `y` (or `x`, depending on the dominant axis) is large.
+Because the example slope is 1/2, the fractional pixel positions will always be exactly at a .5 value and rounded up. For lines with a steep or shallow slope, the effect is more pronounced. For example, for a different line where `x` is 7, `t` is 0.7 and `y0` is 0, then `y` will be 4.9. Adding .5 to `y` gives 5.4, and the integer truncation changes it to 5, which is far closer to the true position than the 4 it would have been. At 4.9 the integer flooring is off by 0.9 pixels, but rounding is only off by 0.1 pixels. Rounding buys us more accurate pixel positioning, with the greatest improvement when the fractional part of `y` (or `x`, depending on the dominant axis) is large.
 
 Applying the rounding to our multiple triangles example, it's hard to see the difference unless you flip between the triangles both with and without rounding, but the interpolation with rounding is more accurate. You'll see a slight shift in the position of the triangles relative to the window border, and within each triangle a slight shift in the pixel positioning. It doesn't make the sides appear any straighter, it's just that some pixels are in a more accurate position. The .gif below shows the triangles with edge lerping with rounding first, then without.
 
@@ -513,5 +513,5 @@ Applying the rounding to our multiple triangles example, it's hard to see the di
 </figure>
 
 # Github Source Commit
-[Project Source: Lesson 02](https://github.com/TurpeNescire/softrend-3d/tree/a58045e8de50180d64b6574c5c8d445507221d84/src/main.c)
+[Project Source: Lesson 02](https://github.com/TurpeNescire/softrend-3d/tree/d4a160bc8b2650eec5c3815149a4fc909f99f907/src/main.c)
 

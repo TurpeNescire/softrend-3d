@@ -1,6 +1,9 @@
 # project specific
 softrend*
 temp/
+include/tracy/
+*.zip
+*.sh
 
 # macOS
 .DS_Store
