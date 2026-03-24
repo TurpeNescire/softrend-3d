@@ -76,6 +76,15 @@ typedef struct Triangle {
     Vec2 v2;
 } Triangle;
 
+// Utility math functions
+static inline int int_max(int x, int y) {
+    return (x > y) ? x : y;
+}
+
+static inline int int_min(int x, int y) {
+    return (x > y) ? y : x;
+}
+
 // Draw a straight line from one endpoint in the buffer to another
 // Does not do bounds checking - up to the caller to pass valid indices
 // TODO: for performance we can switch to Bresenham's later if needed
@@ -120,10 +129,48 @@ void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
     }
 }
 
-void drawTriangle(const uint32_t *buffer, const Triangle *tri, uint32_t color) {
-    drawLine(&tri->v0, &tri->v1, color);
-    drawLine(&tri->v1, &tri->v2, color);
-    drawLine(&tri->v2, &tri->v0, color);
+// Takes a triangle's edge as two Vec2 values, tests if the line crosses the current scanline.
+// Returns true and sets *x to that value if so, otherwise returns false and *x has a garbage value.
+static inline bool crossesScanlineAt(const Vec2 *v0, const Vec2 *v1, int scanline_y, int *x) {
+    int dy = v1->y - v0->y;
+    if (dy == 0) return false; // The edge is a horizontal line or coincident - no crossing
+    if (scanline_y < int_min(v0->y, v1->y) || scanline_y > int_max(v0->y, v1->y))
+        return false; // Ensure that the current scanline is between the two edge vertices
+    int dx = v1->x - v0->x;
+    float t = (float)(scanline_y - v0->y) / (float)dy; // Progress along y: 0 at v0->y, 1 at v1->y
+    *x = (int)(v0->x + t * dx + 0.5f); // Interpolated x at this y, rounded
+    return true;
+}
+
+void drawTriangle(const Triangle *tri, uint32_t color) {
+    const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
+
+    int top_y = int_min(a->y, int_min(b->y, c->y));
+    int bot_y = int_max(a->y, int_max(b->y, c->y));
+
+    for (int scanline_y = top_y; scanline_y <= bot_y; scanline_y++) {
+        int left_x = INT_MAX, right_x = INT_MIN, crossing_x;
+
+        if (crossesScanlineAt(a, b, scanline_y, &crossing_x)) {
+            if (crossing_x < left_x) left_x = crossing_x;
+            if (crossing_x > right_x) right_x = crossing_x;
+        }
+        if (crossesScanlineAt(b, c, scanline_y, &crossing_x)) {
+            if (crossing_x < left_x) left_x = crossing_x;
+            if (crossing_x > right_x) right_x = crossing_x;
+        }
+        if (crossesScanlineAt(c, a, scanline_y, &crossing_x)) {
+            if (crossing_x < left_x) left_x = crossing_x;
+            if (crossing_x > right_x) right_x = crossing_x;
+        }
+
+        if (left_x == INT_MAX || right_x == INT_MIN) {
+            printf("drawTriangle: skipping triangle, left_x = %d, right_x = %d\n", left_x, right_x);
+        }
+        for (int scanline_x = left_x; scanline_x <= right_x; scanline_x++) {
+            PIXEL(scanline_x, scanline_y) = color;
+        }
+    } 
 }
 
 // Returns 1 if the application should quit, 0 otherwise
@@ -172,13 +219,33 @@ int main()
     Triangle tri6 = { { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 } };
-    drawTriangle(buffer, &tri0, colors[RED]);
-    drawTriangle(buffer, &tri1, colors[GREEN]);
-    drawTriangle(buffer, &tri2, colors[BLUE]);
-    drawTriangle(buffer, &tri3, colors[YELLOW]);
-    drawTriangle(buffer, &tri4, colors[CYAN]);
-    drawTriangle(buffer, &tri5, colors[MAGENTA]);
-    drawTriangle(buffer, &tri6, colors[ORANGE]);
+    // near-horizontal sliver
+    Triangle tri7 = { { .x =  20, .y = 195 },
+                      { .x = 180, .y = 195 },
+                      { .x = 100, .y = 194 } };
+    // near-vertical sliver
+    Triangle tri8 = { { .x = 200, .y = 210 },
+                      { .x = 200, .y = 380 },
+                      { .x = 201, .y = 295 } };
+    // horizontal line degenerate
+    Triangle tri9 = { { .x = 240, .y = 200 },
+                      { .x = 310, .y = 200 },
+                      { .x = 380, .y = 201 } };
+    // vertical line degenerate
+    Triangle tri10 = { { .x = 400, .y = 220 },
+                       { .x = 400, .y = 380 },
+                       { .x = 400, .y = 300 } };
+    drawTriangle(&tri0, colors[RED]);
+    drawTriangle(&tri1, colors[GREEN]);
+    drawTriangle(&tri2, colors[BLUE]);
+    drawTriangle(&tri3, colors[YELLOW]);
+    drawTriangle(&tri4, colors[CYAN]);
+    drawTriangle(&tri5, colors[MAGENTA]);
+    drawTriangle(&tri6, colors[ORANGE]);
+    // drawTriangle(&tri7, colors[PURPLE]);
+    // drawTriangle(&tri8, colors[WHITE]);
+    // drawTriangle(&tri9, colors[GRAY]);
+    // drawTriangle(&tri10, colors[SILVER]);
 
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
