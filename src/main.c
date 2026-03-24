@@ -65,12 +65,26 @@ uint32_t colors[] = {
 
 uint32_t buffer[WIDTH * HEIGHT];
 
+typedef struct Vec2 {
+    int x;
+    int y;
+} Vec2;
+
+typedef struct Triangle {
+    Vec2 v0;
+    Vec2 v1;
+    Vec2 v2;
+} Triangle;
+
 // Draw a straight line from one endpoint in the buffer to another
 // Does not do bounds checking - up to the caller to pass valid indices
 // TODO: for performance we can switch to Bresenham's later if needed
 //       or use point-slope and cache slope once as dy/dx and using
 //       y = topY + (x - leftX) * slope for each pixel
-void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
+void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
+    int x0 = v0->x, y0 = v0->y;
+    int x1 = v1->x, y1 = v1->y;
+
     int dx = abs(x1 - x0), dy = abs(y1 - y0);
     // Degenerate case: both endpoints identical, draw a single pixel and bail
     // dx == 0 alone is not sufficient — a vertical line has dx == 0 but dy > 0
@@ -106,6 +120,12 @@ void drawLine(int x0, int y0, int x1, int y1, uint32_t color) {
     }
 }
 
+void drawTriangle(const uint32_t *buffer, const Triangle *tri, uint32_t color) {
+    drawLine(&tri->v0, &tri->v1, color);
+    drawLine(&tri->v1, &tri->v2, color);
+    drawLine(&tri->v2, &tri->v0, color);
+}
+
 // Returns 1 if the application should quit, 0 otherwise
 int handleInput(struct fenster *f) {
     if (f->keys[27]) return 1;                  // Escape
@@ -124,40 +144,41 @@ int main()
         .buf    = buffer
     };
     
-    // x-dominant (wide/flat)        — top-left cell
-    drawLine( 20, 170, 180, 170, colors[RED]);
-    drawLine(180, 170, 100,  30, colors[RED]);
-    drawLine(100,  30,  20, 170, colors[RED]);
-
-    // y-dominant (tall/narrow)      — top-middle cell
-    drawLine(270, 180, 330, 180, colors[GREEN]);
-    drawLine(330, 180, 300,  20, colors[GREEN]);
-    drawLine(300,  20, 270, 180, colors[GREEN]);
-
-    // one vertical edge              — top-right cell
-    drawLine(410,  20, 410, 180, colors[BLUE]);
-    drawLine(410, 180, 580, 100, colors[BLUE]);
-    drawLine(580, 100, 410,  20, colors[BLUE]);
-
-    // one horizontal edge            — bottom-left cell
-    drawLine( 20, 210, 180, 210, colors[YELLOW]);
-    drawLine(180, 210, 100, 380, colors[YELLOW]);
-    drawLine(100, 380,  20, 210, colors[YELLOW]);
-
-    // right triangle                 — bottom-middle cell
-    drawLine(220, 220, 220, 380, colors[CYAN]);
-    drawLine(220, 380, 380, 380, colors[CYAN]);
-    drawLine(380, 380, 220, 220, colors[CYAN]);
-
-    // two coincident vertices        — bottom-right cell
-    drawLine(500, 220, 500, 220, colors[MAGENTA]);
-    drawLine(500, 220, 420, 370, colors[MAGENTA]);
-    drawLine(420, 370, 500, 220, colors[MAGENTA]);
-
+    // x-dominant (wide/flat)   — top-left cell
+    Triangle tri0 = { { .x =  20, .y = 170 },
+                      { .x = 180, .y = 170 },
+                      { .x = 100, .y =  30 } };
+    // y-dominant (tall/narrow) — top-middle cell
+    Triangle tri1 = { { .x = 270, .y = 180 },
+                      { .x = 330, .y = 180 },
+                      { .x = 300, .y =  20 } };
+    // one vertical edge        — top-right cell
+    Triangle tri2 = { { .x = 410, .y =  20 },
+                      { .x = 410, .y = 180 },
+                      { .x = 580, .y = 100 } };
+    // one horizontal edge      — bottom-left cell
+    Triangle tri3 = { { .x =  20, .y = 210 },
+                      { .x = 180, .y = 210 },
+                      { .x = 100, .y = 380 } };
+    // right triangle           — bottom-middle cell
+    Triangle tri4 = { { .x = 220, .y = 220 },
+                      { .x = 220, .y = 380 },
+                      { .x = 380, .y = 380 } };
+    // two coincident vertices  — bottom-right cell
+    Triangle tri5 = { { .x = 500, .y = 220 },
+                      { .x = 500, .y = 220 },
+                      { .x = 420, .y = 370 } };
     // single point — tucked in corner of bottom-right cell
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
-    drawLine(570, 370, 570, 370, colors[ORANGE]);
+    Triangle tri6 = { { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 } };
+    drawTriangle(buffer, &tri0, colors[RED]);
+    drawTriangle(buffer, &tri1, colors[GREEN]);
+    drawTriangle(buffer, &tri2, colors[BLUE]);
+    drawTriangle(buffer, &tri3, colors[YELLOW]);
+    drawTriangle(buffer, &tri4, colors[CYAN]);
+    drawTriangle(buffer, &tri5, colors[MAGENTA]);
+    drawTriangle(buffer, &tri6, colors[ORANGE]);
 
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;

@@ -17,19 +17,108 @@ next_lesson: /lesson_04
 Software 3D rendering had a relatively brief window of popularity. Early examples of wireframe 3D rendering included games like Battlezone (1980) but it wasn't until the early 1990s that the first 2.5D texture mapped 3D games were created. Examples include Ultima Underworld and Wolfenstein 3D, both in 1992. The first consumer hardware accelerators like the [3dfx Voodoo](https://en.wikipedia.org/wiki/3dfx#First_chips) arrived in the mid-90s, and Quake was the most notable early example of a 3D game to take advantage of 3D acceleration with its GLQuake release in 1997. Add-in 3D cards rapidly gained in popularity after that, and through the late 90s most games offered support for software rendering either as the default, or as a fallback when the user didn't have a 3D card. By the early 2000s very few games bothered to include a software render, and the [Pixomatic software renderer](https://web.archive.org/web/20130425032829/http://www.radgametools.com/pixomain.htm) developed by [Michael Abrash](https://en.wikipedia.org/wiki/Michael_Abrash) at RAD Game tools was a drop-in DX7 (and later DX-9) software render that companies could license as a fall-back renderer for users on old hardware. The most famous game to make use of this licensed software render was [Unreal Tournament 2004](https://en.wikipedia.org/wiki/Unreal_Tournament_2004).
 
 ## Why software rendering was phased out
-The reason CPU based software rendering fell out of favor is not as obvious as it might seem at first. Software rendering is not calculation-bound, but memory-bandwidth-bound. When reading and writing pixel data to a framebuffer that is too large to fit in the CPU cache, the CPU has to switch to reading and writing to main memory (RAM). This is far slower than hitting the L1-L3 cache - RAM latency is orders of magnitude higher, a compounding issue for every framebuffer access that misses cache. As screen resolutions (and framebuffer sizes) continued to grow, the bandwidth problem scaled with them and CPU memory bandwidth could not keep pace with GPU memory bandwidth.
+The reason CPU based software rendering fell out of favor is not as obvious as it might seem at first. Software rendering is not calculation-bound, but memory bandwidth-bound. When reading and writing pixel data to a framebuffer that is too large to fit in the CPU cache, the CPU has to switch to reading and writing to main memory (RAM). This is far slower than hitting the L1-L3 cache - RAM latency is orders of magnitude higher, a compounding issue for every framebuffer access that misses cache. As screen resolutions (and framebuffer sizes) continued to grow, the bandwidth problem scaled with them and CPU memory bandwidth could not keep pace with GPU memory bandwidth.
 
 This situation is still the same today. Even with L3 caches now reaching 8MB+, renderers require multiple buffers (a framebuffer and depth buffer at minimum) and these exceed cache capacity at any resolution beyond those of the mid-90s. Texture mapping adds another wrinkle with hundreds of megabytes of texture data needing to be read per frame in modern AAA games. Most modern GPUs range from 8GB to 24GB of VRAM, and while they do have small on-die L1 and L2 caches and higher memory access latency than the CPU, they can move hundreds of GB/s from memory compared to under 100 GB/s for CPUs, and thousands of parallel execution units hide the latency cost while any individual access resolves.
 
 # What is rasterization?
-**Rasterization** comes from "raster", derived from the Latin *rastrum* meaning rake. A ["raster image"](https://en.wikipedia.org/wiki/Raster_graphics) is a two-dimensional matrix of pixel color information. [Raster scanning](https://en.wikipedia.org/wiki/Raster_scan) is the process used in old [CRT display](https://en.wikipedia.org/wiki/Cathode_ray_tube) technology to display a raster image where an electron beam is traced horizontally across the phosphor face of the display from left to right, top to bottom. In modern graphics programming, rasterization is the process of converting a geometric description of polygons into discrete pixels on the screen. [Scanline rasterization](https://en.wikipedia.org/wiki/Scanline_rendering) was the natural approach to rasterize polygon data into pixels for CRT screens, rendering pixels line by line starting from the top left of the screen in the same order that the beam traced the image across the screen, and is still the process employed by modern GPU rasterizers.
+**Rasterization** comes from "raster", derived from the Latin *rastrum* meaning rake. A [raster image](https://en.wikipedia.org/wiki/Raster_graphics) is a two-dimensional matrix of pixel color information. Rasterization is the process of converting a geometric description of polygons into a raster image. [Raster scanning](https://en.wikipedia.org/wiki/Raster_scan) is the process used in old [CRT display](https://en.wikipedia.org/wiki/Cathode_ray_tube) technology to display a raster image where an electron beam is traced horizontally across the phosphor face of the display from left to right, top to bottom. [Scanline rasterization](https://en.wikipedia.org/wiki/Scanline_rendering) was the natural approach to rasterize polygon data into pixels for CRT screens. Pixels were rendered line by line starting from the top left of the screen in the same order that the beam traced the image across the screen. Display and computation hardware has changed significantly, and so have the rasterization algorithms used by modern GPUs, but the end result is still a grid of discrete pixels to be rendered to the screen.
 
 <figure>
   <img src="{{ '/images/lesson_03_Scan-line_algorithm.png' | relative_url }}" alt="Scanline algorithm" style="width:100%">
   <figcaption>Scanline algorithm</figcaption>
 </figure>
 
-## Why use triangles 
-Triangles have several advantages over more complex polygons. Three points always lie on a single plane while polygons with more vertices do not have this advantage and aren't guaranteed to be flat. Each point on a triangle has the same surface normal, which is a highly useful property in 3D rendering as we'll see. Triangles are also always convex, which means a horizontal scanline can intersect it at most at two edges which makes finding and filling spans between surface edges far more simple. For our purposes, this is the most essential property of triangles. An n-gon is just a polygon with more than 3 sides. A scanline can intersect n-gons at more than two edges, resulting in multiple disconnected spans on the same row. To draw pixels on each disconnected span for that polygon would require sorting them and deciding which pairs of intersection points to fill, greatly increasing the complexity of the algorithm. Instead, any n-gon can be converted into triangles on export from a 3D modeling program, or even by us at runtime when loading from a file, and modern GPUs still work exclusively using triangle rasterization. We'll revisit each of these properties as we build the rasterizer.
+## Why rasterizers use triangles
+Triangles have several advantages over more complex polygons. The three points of a triangle always lie on a single plane (coplanar) while polygons with more vertices do not have this advantage and aren't guaranteed to be flat. Each point on a triangle has the same surface normal, which is a highly useful property in 3D rendering as we'll see. Triangles are also always convex, which means a horizontal scanline can intersect it at most at two edges which makes finding and filling spans between surface edges far more simple. For our purposes, this is the most essential property of triangles. An n-gon is just a polygon with more than 3 sides. A scanline can intersect n-gons at more than two edges, resulting in multiple disconnected spans on the same row. To draw pixels on each disconnected span for that polygon would require sorting them and deciding which pairs of intersection points to fill, greatly increasing the complexity of the algorithm. Instead, any n-gon can be converted into triangles on export from a 3D modeling program, or even by us at runtime when loading from a file, and modern GPUs still work exclusively using triangle rasterization. We'll revisit each of these properties as we build the rasterizer.
 
+# Triangle fill
+We left off having drawn the outline of triangles to the screen using our `drawLine` function to interpolate the position of each pixel on the line between two points. We've also talked about the scanline rasterization process used to render an image to a CRT screen and how triangles allow us to easily find the span between two edges of a triangle crossing the scanline. The algorithm is that easy: we iterate from the top of a triangle to the bottom, finding where the edges of the triangle cross the current scanline, and filling the gap between the two edges. A triangle is thus filled from top to bottom, filling each horizontal span from the left edge to the right.
+
+## Adding Vec2 type
+We already have our triangle line edges, but they're not very convenient to work with. We're passing 4 values representing two points in screen space with the origin in the top-left, where the first pixel of our framebuffer is. The traditional approach to storing and passing point coordinates is to use what is known as a [vector](https://www.3blue1brown.com/lessons/vectors#title). Vector might be one of the most overloaded words in the English language, but at its simplest we can just think of it as a Cartesian coordinate. Later on we'll build on that notion, but for now we can define a vector as:
+
+```c
+uint32_t buffer[WIDTH * HEIGHT];
+
+typedef struct Vec2 {
+    int x;
+    int y;
+} Vec2;
+```
+
+## Adding Triangle type and drawTriangle()
+We can then change our `drawLine` function signature to take two `Vec2` objects by reference instead of four `int` objects by value. We won't need to change their values, so we can declare them `const`. We can either replace all uses of `x0`, `y0`, `x1` and `x2` inside `drawLine` with `v0->x`, `v0->y`, `v1->x` and `v1->y` or create aliases as I've done here. With the const hint to the compiler and compiling with optimizations on, the compiler should optimize the code into the same thing aside from the signature differences.
+
+```c
+void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
+    int x0 = v0->x, y0 = v0->y;
+    int x1 = v1->x, y1 = v1->y;
+```
+
+Along with `Vec2` it will be helpful to have a `Triangle` data type that can bundle all three `Vec2` vertices together for convenience. After the `Vec2` definition I placed:
+
+```c
+typedef struct Triangle {
+    Vec2 v0;
+    Vec2 v1;
+    Vec2 v2;
+} Triangle;
+```
+
+and created a new function `drawTriangle` that I defined after `drawLine` and before `main`:
+
+```c
+void drawTriangle(const uint32_t *buffer, const Triangle *tri, uint32_t color) {
+    drawLine(&tri->v0, &tri->v1, color);
+    drawLine(&tri->v1, &tri->v2, color);
+    drawLine(&tri->v2, &tri->v0, color);
+}
+```
+
+And inside `main` changed our `drawLine` calls into `Triangle` definitions and calls to `drawTriangle`:
+
+```c
+        .buf    = buffer
+    };
+    
+    // x-dominant (wide/flat)   — top-left cell
+    Triangle tri0 = { { .x =  20, .y = 170 },
+                      { .x = 180, .y = 170 },
+                      { .x = 100, .y =  30 } };
+    // y-dominant (tall/narrow) — top-middle cell
+    Triangle tri1 = { { .x = 270, .y = 180 },
+                      { .x = 330, .y = 180 },
+                      { .x = 300, .y =  20 } };
+    // one vertical edge        — top-right cell
+    Triangle tri2 = { { .x = 410, .y =  20 },
+                      { .x = 410, .y = 180 },
+                      { .x = 580, .y = 100 } };
+    // one horizontal edge      — bottom-left cell
+    Triangle tri3 = { { .x =  20, .y = 210 },
+                      { .x = 180, .y = 210 },
+                      { .x = 100, .y = 380 } };
+    // right triangle           — bottom-middle cell
+    Triangle tri4 = { { .x = 220, .y = 220 },
+                      { .x = 220, .y = 380 },
+                      { .x = 380, .y = 380 } };
+    // two coincident vertices  — bottom-right cell
+    Triangle tri5 = { { .x = 500, .y = 220 },
+                      { .x = 500, .y = 220 },
+                      { .x = 420, .y = 370 } };
+    // single point — tucked in corner of bottom-right cell
+    Triangle tri6 = { { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 } };
+    drawTriangle(buffer, &tri0, colors[RED]);
+    drawTriangle(buffer, &tri1, colors[GREEN]);
+    drawTriangle(buffer, &tri2, colors[BLUE]);
+    drawTriangle(buffer, &tri3, colors[YELLOW]);
+    drawTriangle(buffer, &tri4, colors[CYAN]);
+    drawTriangle(buffer, &tri5, colors[MAGENTA]);
+    drawTriangle(buffer, &tri6, colors[ORANGE]);
+
+    // Open a system window using the given window specifications
+    if (fenster_open(&window) < 0) return 1;
+```
 
