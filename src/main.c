@@ -134,41 +134,49 @@ void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
 static inline bool crossesScanlineAt(const Vec2 *v0, const Vec2 *v1, int scanline_y, int *x) {
     int dy = v1->y - v0->y;
     if (dy == 0) return false; // The edge is a horizontal line or coincident - no crossing
+    
     if (scanline_y < int_min(v0->y, v1->y) || scanline_y > int_max(v0->y, v1->y))
         return false; // Ensure that the current scanline is between the two edge vertices
+    
     int dx = v1->x - v0->x;
     float t = (float)(scanline_y - v0->y) / (float)dy; // Progress along y: 0 at v0->y, 1 at v1->y
     *x = (int)(v0->x + t * dx + 0.5f); // Interpolated x at this y, rounded
+    
     return true;
+}
+
+static inline void updateSpan(int x, int *left_x, int *right_x) {
+    if (x < *left_x)  *left_x  = x;
+    if (x > *right_x) *right_x = x;
 }
 
 void drawTriangle(const Triangle *tri, uint32_t color) {
     const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
 
+    // area is area of the parallelogram of two vectors formed
+    // from the three ponits of tri computed with their cross product.
+    // We could divide by 2 for the exact area, but if the parallelogram area
+    // is 0, then so is the 1/2 area that is the triangle's area.
+    // int area = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    // if (area == 0) return;
+
+    // Find the vertical span of the triangle
     int top_y = int_min(a->y, int_min(b->y, c->y));
     int bot_y = int_max(a->y, int_max(b->y, c->y));
 
-    for (int scanline_y = top_y; scanline_y <= bot_y; scanline_y++) {
-        int left_x = INT_MAX, right_x = INT_MIN, crossing_x;
+    // Loop over each scanline in the vertical span
+    for (int sy = top_y; sy <= bot_y; sy++) {
+        // Keep track of the current x bounds of any crossing edges
+        int left_x = INT_MAX, right_x = INT_MIN, x;
 
-        if (crossesScanlineAt(a, b, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
-        if (crossesScanlineAt(b, c, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
-        if (crossesScanlineAt(c, a, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
+        // Update the current horizontal span
+        if (crossesScanlineAt(a, b, sy, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(b, c, sy, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(c, a, sy, &x)) updateSpan(x, &left_x, &right_x);
 
-        if (left_x == INT_MAX || right_x == INT_MIN) {
-            printf("drawTriangle: skipping triangle, left_x = %d, right_x = %d\n", left_x, right_x);
-        }
-        for (int scanline_x = left_x; scanline_x <= right_x; scanline_x++) {
-            PIXEL(scanline_x, scanline_y) = color;
+        // Fill the current span, claming to the edges of the screen
+        for (int sx = int_max(left_x, 0); sx <= int_min(right_x, WIDTH - 1); sx++) {
+            PIXEL(sx, sy) = color;
         }
     } 
 }
@@ -219,19 +227,19 @@ int main()
     Triangle tri6 = { { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 } };
-    // near-horizontal sliver
+    // near-horizontal sliver   - left-side middle
     Triangle tri7 = { { .x =  20, .y = 195 },
                       { .x = 180, .y = 195 },
-                      { .x = 100, .y = 194 } };
-    // near-vertical sliver
+                      { .x = 180, .y = 194 } };
+    // near-vertical sliver     - bottom-left between yellow and cyan tris
     Triangle tri8 = { { .x = 200, .y = 210 },
                       { .x = 200, .y = 380 },
                       { .x = 201, .y = 295 } };
-    // horizontal line degenerate
+    // horizontal line degenerate - in the middle between green and cyan tris
     Triangle tri9 = { { .x = 240, .y = 200 },
                       { .x = 310, .y = 200 },
-                      { .x = 380, .y = 201 } };
-    // vertical line degenerate
+                      { .x = 380, .y = 200 } };
+    // vertical line degenerate  - bottom-right between cyan and magenta tris
     Triangle tri10 = { { .x = 400, .y = 220 },
                        { .x = 400, .y = 380 },
                        { .x = 400, .y = 300 } };
@@ -242,10 +250,10 @@ int main()
     drawTriangle(&tri4, colors[CYAN]);
     drawTriangle(&tri5, colors[MAGENTA]);
     drawTriangle(&tri6, colors[ORANGE]);
-    // drawTriangle(&tri7, colors[PURPLE]);
-    // drawTriangle(&tri8, colors[WHITE]);
-    // drawTriangle(&tri9, colors[GRAY]);
-    // drawTriangle(&tri10, colors[SILVER]);
+    drawTriangle(&tri7, colors[PURPLE]);
+    drawTriangle(&tri8, colors[WHITE]);
+    drawTriangle(&tri9, colors[GRAY]);
+    drawTriangle(&tri10, colors[SILVER]);
 
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;

@@ -47,7 +47,7 @@ typedef struct Vec2 {
 } Vec2;
 ```
 
-## Adding Triangle type and drawTriangle()
+## Adding the Triangle type and drawTriangle()
 We can then change our `drawLine` function signature to take two `Vec2` objects by reference instead of four `int` objects by value. We won't need to change their values, so we can declare them `const`. We can either replace all uses of `x0`, `y0`, `x1` and `x2` inside `drawLine` with `v0->x`, `v0->y`, `v1->x` and `v1->y` or create aliases as I've done here. With the const hint to the compiler and with optimizations on, the compiler should optimize the code into the same thing aside from the signature differences.
 
 ```c
@@ -165,12 +165,15 @@ You might have noticed that we can use the basic interpolation algorithm we deve
 ```c
 static inline bool crossesScanlineAt(const Vec2 *v0, const Vec2 *v1, int *x, int scanline_y) {
     int dy = v1->y - v0->y;
-    int dx = v1->x - v0->x;
     if (dy == 0) return false; // The edge is a horizontal line or coincident - no crossing
+
     if (scanline_y < int_min(v0->y, v1->y) || scanline_y > int_max(v0->y, v1->y))
         return false; // Ensure that the current scanline is between the two edge vertices
+
+    int dx = v1->x - v0->x;
     float t = (float)(scanline_y - v0->y) / (float)dy; // Progress along y: 0 at v0->y, 1 at v1->y
     *x = (int)(v0->x + t * dx + 0.5f); // Interpolated x at this y, rounded
+
     return true;
 }
 ```
@@ -178,33 +181,119 @@ static inline bool crossesScanlineAt(const Vec2 *v0, const Vec2 *v1, int *x, int
 This tells us if and where an edge crosses the current scanline y-axis. Inside `drawTriangle` we need to check each edge for intersection and decide what the left and right bounds of our horizontal span will be:
 
 ```c
+static inline void updateSpan(int x, int *left_x, int *right_x) {
+    if (x < *left_x) *left_x = x;
+    if (x > *right_x) *right_x = x;
+}
+
 void drawTriangle(const Triangle *tri, uint32_t color) {
     const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
 
     int top_y = int_min(a->y, int_min(b->y, c->y));
     int bot_y = int_max(a->y, int_max(b->y, c->y));
 
-    for (int scanline_y = top_y; scanline_y <= bot_y; scanline_y++) {
-        int left_x = INT_MAX, right_x = INT_MIN, crossing_x;
+    for (int scan_y = top_y; scan_y <= bot_y; scan_y++) {
+        int left_x = INT_MAX, right_x = INT_MIN, x;
 
-        if (crossesScanlineAt(a, b, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
-        if (crossesScanlineAt(b, c, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
-        if (crossesScanlineAt(c, a, scanline_y, &crossing_x)) {
-            if (crossing_x < left_x) left_x = crossing_x;
-            if (crossing_x > right_x) right_x = crossing_x;
-        }
+        if (crossesScanlineAt(a, b, scan_y, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(b, c, scan_y, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(c, a, scan_y, &x)) updateSpan(x, &left_x, &right_x);
 
-        for (int scanline_x = left_x; scanline_x <= right_x; scanline_x++) {
-            PIXEL(scanline_x, scanline_y) = color;
+        for (int scan_x = int_max(left_x, 0); scan_x <= int_min(right_x, WIDTH - 1); scan_x++) {
+            PIXEL(scan_x, scan_y) = color;
         }
     } 
 }
 ```
 
-We now have our filled triangles.
+<figure>
+  <img src="{{ '/images/lesson_03_filled_triangles.png' | relative_url }}" alt="Filled triangles" style="width:100%">
+  <figcaption>Filled triangles</figcaption>
+</figure>
+
+## Degenerate triangles
+We now have our filled triangles. You might notice the single pixel orange triangle with all three vertices coincident did not render. These types of triangles are called degenerate where two or all three of the vertices are coincident. You can generally assume that any triangle definition loaded from a 3D file format like [Wavefront OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file) and [glTF](https://en.wikipedia.org/wiki/GlTF) will not contain degenerate triangles, but in a 3D engine as you transform the position of geometry by moving the camera, you can end up viewing triangles edge on and the renderer will occasionaly be passed such degenerate transformed triangles. It's up to the engine to decide whether to render degenerate lines with no area as a single pixel or a single edge. Here are four additional triangles, two valid ones that are either 2 pixels wide or tall, and two that are 1 pixel wide or tall degenerate triangles with no area:
+
+```c
+    // single point — tucked in corner of bottom-right cell
+    Triangle tri6 = { { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 },
+                      { .x = 570, .y = 370 } };
+    // near-horizontal sliver   - left-side middle
+    Triangle tri7 = { { .x =  20, .y = 195 },
+                      { .x = 180, .y = 195 },
+                      { .x = 180, .y = 194 } };
+    // near-vertical sliver     - bottom-left between yellow and cyan tris
+    Triangle tri8 = { { .x = 200, .y = 210 },
+                      { .x = 200, .y = 380 },
+                      { .x = 201, .y = 295 } };
+    // horizontal line degenerate - in the middle between green and cyan tris
+    Triangle tri9 = { { .x = 240, .y = 200 },
+                      { .x = 310, .y = 200 },
+                      { .x = 380, .y = 200 } };
+    // vertical line degenerate  - bottom-right between cyan and magenta tris
+    Triangle tri10 = { { .x = 400, .y = 220 },
+                       { .x = 400, .y = 380 },
+                       { .x = 400, .y = 300 } };
+...
+    drawTriangle(&tri6, colors[ORANGE]);
+    drawTriangle(&tri7, colors[PURPLE]);
+    drawTriangle(&tri8, colors[WHITE]);
+    drawTriangle(&tri9, colors[GRAY]);
+    drawTriangle(&tri10, colors[SILVER]);
+```
+
+All of the new triangles render as expected except the horizontal degenerate triangle `tri9`, along with `tri6` that wasn't rendering previously. There are various ways to handle removing or *culling* triangles such as degenerate triangles or triangles that are so far away they render with zero area. This culling happens for various reasons, both for visual correctness and also to reduce the number of computations carried out in the rendering pipeline. 
+
+A simple check that would handle all of these cases would be to compute the area of the triangle at the top of `drawTriangle` and skip rendering any triangle with 0 area. The naieve `area = 1/2 * base * height` formula is terribly inefficient, taking roughly 12 multiplies, 4 additions, 4 subtracts, 2 square roots and 1 division operation, which can total hundreds of [cycles](https://en.wikipedia.org/wiki/Cycles_per_instruction). A much cheaper method that gives us the same information is to use the [cross product](https://www.3blue1brown.com/lessons/cross-products#two-dimensions) of two vectors. "Clocking" in at 2 multiplies and 5 subtracts it is far more efficient. The cross product is useful in graphics programming primarily because it gives us the surface normal, which is a vector perpendicular to the surface. The normal is used for computing things like lighting intensity and whether a surface should be rendered or not (backface culling). We'll cover these uses later, but for now we actually are interested in a byproduct of the cross product calculation.
+
+When you take the cross product of two 2D vectors, the resulting vector is a "3D" vector that looks like (0, 0, z) where the z component value is twice the area of the triangle formed by edges of the two vectors. This is a bit complex, but I think it's a good introduction to computing and thinking about the cross product.
+
+## Using cross product to determine area
+
+<figure>
+  <video width="100%" controls loop muted>
+    <source src="{{ '/images/lesson_03_CrossProductAnimation.mp4' | relative_url }}" type="video/mp4">
+  </video>
+  <figcaption>Finding the triangle area via cross product</figcaption>
+</figure>
+
+In the following I'll work through using the general 3D cross product formula to arrive at a simple cross product formula for 2D vectors as:
+
+`u × v = (0, 0, u.x*v.y - u.y*v.x)`
+
+This calculation results in the z-component of a new 3D vector `(0, 0, z)`. The value `z` is a scalar that represents twice the area of the triangle built on vectors `u` and `v`. We could try picking two of our position vectors `a`, `b` and `c` and applying the cross product to them, but the resulting area computed would be with respect to the triangle formed with those two vectors and the origin and not the triangle formed by the three triangle positional vectors. But we can derive two displacement vectors from our three positional vectors if we choose one of the vectors as a common origin and subtract it from the other two vectors. Looking at the video, we choose vector `a` as our origin and subtract vector `a` from vector `b` to form vector `u`, and subtract vector `a` from vector `c` to form vector `v`.
+
+`u = (b.x - a.x, b.y - a.y)`
+`v = (c.x - a.x, c.y - a.y)`
+
+and substituting these values of `u` and `v` and a `z` value of 0 for each vector into the general 3D cross product definition:
+
+`u × v = (u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x)`
+
+the `z` values of 0 cancel the first two terms:
+
+`u × v = (u.y*0 - 0*v.y, 0*v.x - u.x*0, u.x*v.y - u.y*v.x)`
+`u × v = (0, 0, u.x*v.y - u.y*v.x)`
+
+We can plug the original component values of `a`, `b` and `c` back in to express the computation with our original three positional vectors:
+
+`u × v = (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x)`
+
+which is what we wanted to prove. With these two multiplications and five subtractions we've computed twice the area of our triangle. We don't actually need to divide by 2 to get the area, we only care that the area is not zero, which means none of our vertices are coincident and we have a non-degenerate triangle.
+
+## Removing degenerate triangles
+We can use the cross product formula for 2D vectors that we just derived to skip drawing any degenerate triangles with 2 or more coincident vertices that will have an area of 0:
+
+```c
+void drawTriangle(const Triangle *tri, uint32_t color) {
+    const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
+
+    // The cross product for 2D vectors has only a z-component: (0, 0, b-a)×(c-a).
+    // That z value equals the signed parallelogram area spanned by u and v.
+    // Zero means the vertices are collinear — no triangle to draw.
+    int crossProductZ = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    if (crossProductZ == 0) return;
+
+    // Find the vertical span of the triangle
+```
