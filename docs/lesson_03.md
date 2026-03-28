@@ -82,31 +82,31 @@ And inside `main` changed our `drawLine` calls into `Triangle` definitions and c
         .buf    = buffer
     };
     
-    // x-dominant (wide/flat)   — top-left cell
-    Triangle tri0 = { { .x =  20, .y = 170 },
-                      { .x = 180, .y = 170 },
-                      { .x = 100, .y =  30 } };
-    // y-dominant (tall/narrow) — top-middle cell
-    Triangle tri1 = { { .x = 270, .y = 180 },
-                      { .x = 330, .y = 180 },
-                      { .x = 300, .y =  20 } };
-    // one vertical edge        — top-right cell
-    Triangle tri2 = { { .x = 410, .y =  20 },
-                      { .x = 410, .y = 180 },
-                      { .x = 580, .y = 100 } };
-    // one horizontal edge      — bottom-left cell
-    Triangle tri3 = { { .x =  20, .y = 210 },
-                      { .x = 180, .y = 210 },
-                      { .x = 100, .y = 380 } };
-    // right triangle           — bottom-middle cell
-    Triangle tri4 = { { .x = 220, .y = 220 },
-                      { .x = 220, .y = 380 },
-                      { .x = 380, .y = 380 } };
-    // two coincident vertices  — bottom-right cell
-    Triangle tri5 = { { .x = 500, .y = 220 },
-                      { .x = 500, .y = 220 },
-                      { .x = 420, .y = 370 } };
-    // single point — tucked in corner of bottom-right cell
+    // x-dominant (wide/flat)      — top-left cell
+    Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
+                      { .x = 180, .y = 170 },   // bottom-right
+                      { .x = 100, .y =  30 } }; // top-middle
+    // y-dominant (tall/narrow)    — top-middle cell
+    Triangle tri1 = { { .x = 270, .y = 180 },   // bottom-left
+                      { .x = 330, .y = 180 },   // bottom-right
+                      { .x = 300, .y =  20 } }; // top-middle
+    // one vertical edge           — top-right cell
+    Triangle tri2 = { { .x = 410, .y =  20 },   // top-left
+                      { .x = 410, .y = 180 },   // bottom-left
+                      { .x = 580, .y = 100 } }; // right-middle
+    // one horizontal edge         — bottom-left cell
+    Triangle tri3 = { { .x =  20, .y = 210 },   // bottom-left
+                      { .x = 180, .y = 210 },   // bottom-right
+                      { .x = 100, .y = 380 } }; // top-middle
+    // right triangle              — bottom-middle cell
+    Triangle tri4 = { { .x = 220, .y = 220 },   // top-left
+                      { .x = 220, .y = 380 },   // bottom-left
+                      { .x = 380, .y = 380 } }; // bottom-right
+    // degenerate: two coincident vertices  — bottom-right cell
+    Triangle tri5 = { { .x = 500, .y = 220 },   // top-right
+                      { .x = 500, .y = 220 },   // top-right
+                      { .x = 420, .y = 370 } }; // bottom-left
+    // degenerate: single point    — tucked in corner of bottom-right cell
     Triangle tri6 = { { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 } };
@@ -122,7 +122,7 @@ And inside `main` changed our `drawLine` calls into `Triangle` definitions and c
     if (fenster_open(&window) < 0) return 1;
 ```
 
-We're back to drawing our example triangles exactly as we started the lesson. What have we gained? We can now pass vertex information around in a more convenient fashion, but also have a better abstraction layer, passing each `Triangle` to `drawTriangle`. Within `drawTriangle` we now need to find and fill all of the spans where the triangle crosses the spanline. At the least, we need to know the vertical screen space height of the triangle so that we can iterate over each scanline that touches the triangle. We can implement that easily before worrying about whether we need to find the horizontal width also.
+We're back to drawing our example triangles exactly as we started the lesson. What have we gained? We can now pass vertex information around in a more convenient fashion, but also have a better abstraction layer, passing each `Triangle` to `drawTriangle`. Within `drawTriangle` we now need to find and fill all of the spans where the triangle crosses the spanline. At the least, we need to know the vertical screen space height of the triangle so that we can iterate over each scanline that touches the triangle. 
 
 The easiest way to find the minimum and maximum of three integer values is to create a few helper functions, `int_min` and `int_max`, both declared to be `static inline`. `inline` tells the compiler to replace the function calls with their bodies at each occurence, avoiding the added overhead of calling a function. For small functions like this the compiler will carry out that optimization by itself, but it's good practice to provide those hints to the reader and the compiler. `static` tells the compiler that the function symbol is only accessible from this file.
 
@@ -150,7 +150,7 @@ void drawTriangle(const Triangle *tri, uint32_t color) {
 }
 ```
 
-Now we need to iterate over every scanline between `top_y` and `bot_y` inclusive. We need to find a clean interface for finding the `x` values of any intersections of the triangle against the scanline. We need a helper function that takes two the triangle vertices representing an edge, and tell us if that edge crosses the scanline, and returning the `x` value of that intersection. This helper function might be called hundreds of thousands of times per frame depending on the number of triangles being rendered, so we'll declare it `static inline` also:
+Now we need to iterate over every scanline between `top_y` and `bot_y` inclusive. We need to find a clean interface for finding the `x` values of any intersections of the triangle against the scanline. We need a helper function that takes the triangle vertices representing an edge, and tell us if that edge crosses the scanline, and returning the `x` value of that intersection if it exists. This helper function might be called hundreds of thousands of times per frame depending on the number of triangles being rendered, so we'll declare it `static inline` also:
 
 ```c
 static inline bool crossesScanlineAt(const Vec2 *v0, const Vec2 *v1, int scanline_y, int *x) {
@@ -212,29 +212,29 @@ void drawTriangle(const Triangle *tri, uint32_t color) {
 </figure>
 
 ## Degenerate triangles
-We now have our filled triangles. You might notice the single pixel orange triangle with all three vertices coincident did not render. These types of triangles are called degenerate where two or all three of the vertices are coincident. You can generally assume that any triangle definition loaded from a 3D file format like [Wavefront OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file) and [glTF](https://en.wikipedia.org/wiki/GlTF) will not contain degenerate triangles, but in a 3D engine as you transform the position of geometry by moving the camera, you can end up viewing triangles edge on and the renderer will occasionaly be passed such degenerate transformed triangles. It's up to the engine to decide whether to render degenerate lines with no area as a single pixel or a single edge. Here are four additional triangles, two valid ones that are either 2 pixels wide or tall, and two that are 1 pixel wide or tall degenerate triangles with no area:
+We now have our filled triangles. You might notice the single pixel orange triangle with all three vertices coincident did not render. These types of triangles are called degenerate where two or all three of the vertices are coincident. You can generally assume that any triangle definition loaded from a 3D file format like [Wavefront OBJ](https://en.wikipedia.org/wiki/Wavefront_.obj_file) and [glTF](https://en.wikipedia.org/wiki/GlTF) will not contain degenerate triangles. However, as you transform the position of geometry by moving the camera in a 3D engine, it's possible to end up viewing triangles edge on and the renderer will occasionaly be passed such degenerate zero area triangles. It's up to the engine to decide whether to render degenerate lines with no area as a single pixel or a single edge, or to skip rendering them altogether. Here are four additional triangles, two valid ones that are either 2 pixels wide or tall, and two that are 1 pixel wide or tall degenerate triangles with no area:
 
 ```c
-    // single point — tucked in corner of bottom-right cell
+    // degenerate: single point    — tucked in corner of bottom-right cell
     Triangle tri6 = { { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 } };
-    // near-horizontal sliver   - left-side middle
-    Triangle tri7 = { { .x =  20, .y = 195 },
-                      { .x = 180, .y = 195 },
-                      { .x = 180, .y = 194 } };
-    // near-vertical sliver     - bottom-left between yellow and cyan tris
-    Triangle tri8 = { { .x = 200, .y = 210 },
-                      { .x = 200, .y = 380 },
-                      { .x = 201, .y = 295 } };
-    // horizontal line degenerate - in the middle between green and cyan tris
-    Triangle tri9 = { { .x = 240, .y = 200 },
-                      { .x = 310, .y = 200 },
-                      { .x = 380, .y = 200 } };
-    // vertical line degenerate  - bottom-right between cyan and magenta tris
-    Triangle tri10 = { { .x = 400, .y = 220 },
-                       { .x = 400, .y = 380 },
-                       { .x = 400, .y = 300 } };
+    // near-horizontal sliver      - left-side middle
+    Triangle tri7 = { { .x =  20, .y = 195 },   // left
+                      { .x = 180, .y = 195 },   // right
+                      { .x = 180, .y = 194 } }; // 1 pixel above right
+    // near-vertical sliver        - bottom-left between yellow and cyan tris
+    Triangle tri8 = { { .x = 200, .y = 210 },   // top
+                      { .x = 200, .y = 380 },   // bottom
+                      { .x = 201, .y = 295 } }; // middle, 1 pixel right
+    // degenerate: horizontal line - in the middle between green and cyan tris
+    Triangle tri9 = { { .x = 240, .y = 200 },   // left
+                      { .x = 310, .y = 200 },   // middle
+                      { .x = 380, .y = 200 } }; // right
+    // degenerate: vertical line   - bottom-right between cyan and magenta tris
+    Triangle tri10 = { { .x = 400, .y = 220 },   // bottom 
+                       { .x = 400, .y = 380 },   // top 
+                       { .x = 400, .y = 300 } }; // middle
 ...
     drawTriangle(&tri6, colors[ORANGE]);
     drawTriangle(&tri7, colors[PURPLE]);
@@ -243,13 +243,20 @@ We now have our filled triangles. You might notice the single pixel orange trian
     drawTriangle(&tri10, colors[SILVER]);
 ```
 
-All of the new triangles render as expected except the horizontal degenerate triangle `tri9`, along with `tri6` that wasn't rendering previously. There are various ways to handle removing or *culling* triangles such as degenerate triangles or triangles that are so far away they render with zero area. This culling happens for various reasons, both for visual correctness and also to reduce the number of computations carried out in the rendering pipeline. 
+<figure>
+  <img src="{{ '/images/lesson_03_extra_test_triangles.png' | relative_url }}" alt="Extra test triangles" style="width:100%">
+  <figcaption>Extra test triangles</figcaption>
+</figure>
 
-A simple check that would handle all of these cases would be to compute the area of the triangle at the top of `drawTriangle` and skip rendering any triangle with 0 area. The naieve `area = 1/2 * base * height` formula is terribly inefficient, taking roughly 12 multiplies, 4 additions, 4 subtracts, 2 square roots and 1 division operation, which can total hundreds of [cycles](https://en.wikipedia.org/wiki/Cycles_per_instruction). A much cheaper method that gives us the same information is to use the [cross product](https://www.3blue1brown.com/lessons/cross-products#two-dimensions) of two vectors. "Clocking" in at 2 multiplies and 5 subtracts it is far more efficient. The cross product is useful in graphics programming primarily because it gives us the surface normal, which is a vector perpendicular to the surface. The normal is used for computing things like lighting intensity and whether a surface should be rendered or not (backface culling). We'll cover these uses later, but for now we actually are interested in a byproduct of the cross product calculation.
 
-When you take the cross product of two 2D vectors, the resulting vector is a "3D" vector that looks like (0, 0, z) where the z component value is twice the area of the triangle formed by edges of the two vectors. This is a bit complex, but I think it's a good introduction to computing and thinking about the cross product.
+All of the new triangles render as expected except the horizontal degenerate triangle `tri9`, along with the three coincident vertices triangle `tri6` that wasn't rendering previously. For both, in all three `crossesScanlineAt` checks the `dy` value is 0 and return `false` so that in `drawTriangle`, `left_x` is still `INT_MAX` and `right_x` is still `INT_MIN`, and `scan_x` in the fill loop never passes the conditional check `scan_x <= int_min(right_x, WIDTH - 1)`.
+
+The process of choosing triangles to ignore drawing is called *culling* or removing. There are various ways to handle culling triangles such as degenerate triangles or triangles that are so far away they render with zero area, or triangles that are never visible on the screen. Culling can be used to maintain visual correctness, another reason is to reduce the number of computations carried out in the rendering pipeline. We'll revist culling later as it becomes more important in our rendering pipeline.
+
+For now, a simple check that would handle rejecting drawing all forms of degenerate triangle cases would be to cull any triangle with no area. The naieve `area = 1/2 * base * height` formula is relatively expensive in terms of [CPU instruction cycles](https://en.wikipedia.org/wiki/Cycles_per_instruction), requiring several square root and divide instructions, which can take somewhere around 40-60 cycles on a modern processor. A much cheaper method that gives us the same information is to find the [cross product](https://www.3blue1brown.com/lessons/cross-products#two-dimensions) of two triangle vectors. "Clocking" in at 2 multiplies and 5 subtracts this method is far more efficient, and can take somewhere between 3-10 total instruction cycles. The cross product is primarily useful in graphics programming because it gives us the surface normal, which is a vector perpendicular to the surface. The normal is used for computing things like lighting intensity and whether hidden surfaces should be rendered or not (backface culling). For now we're only interested in using the cross product formula to derive an area of our triangle.
 
 ## Using cross product to determine area
+When you take the cross product of two 2D vectors, the resulting vector is a "3D" vector that looks like (0, 0, z) where the z component value is twice the area of the triangle formed by edges of the two vectors. `(0, 0, z)` also is perpendicular to the plane containing the first two vectors at their shared origin. This is not the usual way the cross-product is introduced, but I think it's a more simple introduction.
 
 <figure>
   <video width="100%" controls loop muted>
@@ -258,27 +265,33 @@ When you take the cross product of two 2D vectors, the resulting vector is a "3D
   <figcaption>Finding the triangle area via cross product</figcaption>
 </figure>
 
-In the following I'll work through using the general 3D cross product formula to arrive at a simple cross product formula for 2D vectors as:
+In the following I'll work through the steps in the video, using the general 3D cross product formula to arrive at a simple cross product formula for two 2D vectors `u` and `v` as:
 
 `u × v = (0, 0, u.x*v.y - u.y*v.x)`
 
-This calculation results in the z-component of a new 3D vector `(0, 0, z)`. The value `z` is a scalar that represents twice the area of the triangle built on vectors `u` and `v`. We could try picking two of our position vectors `a`, `b` and `c` and applying the cross product to them, but the resulting area computed would be with respect to the triangle formed with those two vectors and the origin and not the triangle formed by the three triangle positional vectors. But we can derive two displacement vectors from our three positional vectors if we choose one of the vectors as a common origin and subtract it from the other two vectors. Looking at the video, we choose vector `a` as our origin and subtract vector `a` from vector `b` to form vector `u`, and subtract vector `a` from vector `c` to form vector `v`.
+As we'll see, the `z` value `u.x*v.y - u.y*v.x` is a scalar that represents twice the area of the triangle built on vectors `u` and `v`, which we derive from our existing position vectors from the origin `a`, `b` and `c`. We could try picking two of these original position vectors `a`, `b` and `c` and applying the cross product to them, but the resulting area derived from the cross product would be with respect to the triangle formed with `b` and `c` and the origin and not the triangle formed by `a` `b` and `c`. Looking at the video above, if we used the current vectors `b` and `c` from the origin at `(0, 0)`, they would describe a triangle from the origin with vector `a` in the middle, not the triangle `abc`. However, we can derive two displacement vectors from our three positional vectors if we choose one of the vectors `a`, `b`, `c` as a common origin and subtract it from the other two vectors. Looking at the video, we choose vector `a` as our origin and subtract vector `a` from vector `b` to form vector `u`, and subtract vector `a` from vector `c` to form vector `v`. These two new vectors from the same origin form the edges of the triangle we want.
 
 `u = (b.x - a.x, b.y - a.y)`
 `v = (c.x - a.x, c.y - a.y)`
 
-and substituting these values of `u` and `v` and a `z` value of 0 for each vector into the general 3D cross product definition:
+and substituting these values of `u` and `v` and a `z` value of 0 for each vector into the general 3D cross product definition gives:
 
 `u × v = (u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x)`
 
-the `z` values of 0 cancel the first two terms:
+The `z` values of 0 cancel out the first two terms:
 
-`u × v = (u.y*0 - 0*v.y, 0*v.x - u.x*0, u.x*v.y - u.y*v.x)`
-`u × v = (0, 0, u.x*v.y - u.y*v.x)`
+```
+u × v = (u.y*0 - 0*v.y, 0*v.x - u.x*0, u.x*v.y - u.y*v.x)
+u × v = (0, 0, u.x*v.y - u.y*v.x)
+```
 
-We can plug the original component values of `a`, `b` and `c` back in to express the computation with our original three positional vectors:
+We can plug the original component values of `a`, `b` and `c` back in to the components of `u` and `v` to express the computation with our original three positional vectors:
 
-`u × v = (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x)`
+`u × v = (0, 0, ((b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x)))`
+
+The z-component of the cross product is thus the parallelogram formed by the sides of the triangle `u` and `v`:
+
+`z = (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x)`
 
 which is what we wanted to prove. With these two multiplications and five subtractions we've computed twice the area of our triangle. We don't actually need to divide by 2 to get the area, we only care that the area is not zero, which means none of our vertices are coincident and we have a non-degenerate triangle.
 
@@ -297,3 +310,136 @@ void drawTriangle(const Triangle *tri, uint32_t color) {
 
     // Find the vertical span of the triangle
 ```
+
+<figure>
+  <img src="{{ '/images/lesson_03_triangle_areas_not_zero.png' | relative_url }}" alt="Lesson 03 Triangles with Non-zero Area" style="width:100%">
+  <figcaption>Triangles with non-zero area</figcaption>
+</figure>
+
+This gives us all triangles that have no coincident vertices. You might wonder, what does it mean for that signed paralellogram area representing the `z` component of the cross product to be negative or positive? Let's check:
+
+```c
+    int crossProductZ = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    if (crossProductZ < 0) return; // negative signed paralleogram area of u × v
+```
+
+<figure>
+  <img src="{{ '/images/lesson_03_triangle_areas_gte_zero.png' | relative_url }}" alt="Triangle Areas Greater Than or Equal to 0" style="width:100%">
+  <figcaption>Triangles with area greater than or equal to 0</figcaption>
+</figure>
+
+Two of our zero area degenerate triangles draw: `tri5` and `tri10`. `tri6` and `tri9` pass the area check but have `dy == 0` as mentioned above and never fill their horizontal spans. But why is `tri3` showing up, and why aren't all of the other filled triangles? This means `tri3` has a positive area and the other filled triangles all have negative areas. If you noticed at the end of the video above, the cross product vector that is perpendicular to the triangle `abc` surface can either point up along positive-z or down negative-z, depending on the order of `u × v` or `v × u`. We converted those two vectors back into the original triangle `abc` component values, and the video mentions that when the points `a` `b` and `c` of a triangle are counter-clockwise, the cross product points along the positive-z axis, and when they're clockwise the cross product points along the negative-z axis.
+
+What does it mean for these position vectors to be clockwise or counter-clockwise? The [OpenGL wiki](https://wikis.khronos.org/opengl/Face_Culling#Winding_order) describes this as the *winding order* of a triangle.
+
+```
+Given an ordering of the triangle's three vertices, a triangle can appear to have a clockwise winding or counter-clockwise winding. Clockwise means that the three vertices, in order, rotate clockwise around the triangle's center. Counter-clockwise means that the three vertices, in order, rotate counter-clockwise around the triangle's center.
+```
+
+Look at the definition for `tri3`:
+
+```c
+    Triangle tri3 = { { .x =  20, .y = 210 },   // top-left
+                      { .x = 180, .y = 210 },   // top-right
+                      { .x = 100, .y = 380 } }; // bottom
+```
+
+Following the points in order across their appearance on screen shows them to be in clockwise order. Looking at all of our other filled triangles, they are listed in counter-clockwise order:
+
+```c
+    Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
+                      { .x = 180, .y = 170 },   // bottom-right
+                      { .x = 100, .y =  30 } }; // top-middle
+```
+
+This is what the video mentions at the end: when a cross product has a positive-z component value, the triangle has counter-clockwise winding, and clockwise when it is negative. We can change the winding order of `tri3`, or the winding order of all the other triangles. We'll talk more later about this cross-product winding check and how it relates to culling triangles, but you might already be able to see how it can be very useful for optimizing a 3D engine. To end this section, let's fix it so all of the filled triangles render. That's a two step process, see if you can do it yourself first.
+
+In `drawTriangle` change the test back to rejecting triangles with areas greater than 0:
+
+```c
+    // Zero means two or more of the vertices are collinear — no triangle to draw.
+    int crossProductZ = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    if (crossProductZ > 0) return;
+
+    // Find the vertical span of the triangle, clamp to vertical screen bounds
+    int top_y = int_max(
+```
+
+and in `main` change the winding of `tri3` so it now also has a negative cross product z-component:
+
+```c
+    // one horizontal edge         — bottom-left cell
+    Triangle tri3 = { { .x =  20, .y = 210 },   // bottom-left
+                      { .x = 100, .y = 380 },   // top-middle
+                      { .x = 180, .y = 210 } }; // bottom-right
+```
+
+<figure>
+  <img src="{{ '/images/lesson_03_extra_test_triangles.png' | relative_url }}" alt="Triangle Areas Less Than or Equal to 0" style="width:100%">
+  <figcaption>Triangles with area less than or equal to 0</figcaption>
+</figure>
+
+At this point, we have the basic building blocks of a 3D renderer. We could manually describe all of the triangles in a static scene just as we've done with this handful of triangles, or load them from a 3D model file, and apply this kind of triangle shading to each triangle with a single manually specified RBG color and render millions of triangles to draw an image from your favorite modern video game. The complexity of a 3D engine comes from dynamically changing that view, moving the camera around the scene, applying positional transformations to those triangles as well as lighting and texturing them and a million other operations. Below is a comparison of the current version of my engine with unlit textures on a 10 million triangle scene to an [OpenGL version](https://3dworldgen.blogspot.com/2017/01/san-miguel-scene.html) of the San Miguel scene by Guillermo Llaguno.
+
+<div style="display:flex; gap:1rem;">
+  <figure style="flex:1; margin:0;">
+    <img src="{{ '/images/lesson_03_san-miguel_unlit.png' | relative_url }}" style="width:100%">
+    <figcaption>Current Softrend unlit San Miguel</figcaption>
+  </figure>
+  <figure style="flex:1; margin:0;">
+    <img src="{{ '/images/lesson_03_san-miguel_textured.png' | relative_url }}" style="width:100%">
+    <figcaption>3D World Textured San Miguel</figcaption>
+  </figure>
+</div>
+
+# Note on linear algebra
+Graphics programming is tightly linked with linear algebra. You can just memorize the general formulas and applications that fall from them without understanding the math. Linear interpolation (LERP) just finds a point along a straight edge given one of the point's components, and the cross product tells us the vector perpendicular to two vectors in a plane, and also can be used to get the triangle area formed by those two vector edges.
+
+But if you've made it this far you clearly enjoy learning from [first principles](https://en.wikipedia.org/wiki/Posterior_Analytics), from simple things we know through sense observation to more abstract and generalized conclusions. I think geometry is the first movement from our sense observations of continuous quantities in the world to a [formal abstraction](https://www.math.purdue.edu/~goldberg/Math460/Euclid-BKI.pdf). We never actually "see" perfect points, straight or parallel lines, planes, right angles, triangles, squares, etc. But we intuit those concepts and they become the first principles of geometry, from which fall other branches like trigonometry and calculus. Branches of math that proceed from our perceptions of discrete quantities build from basic arithmetic, like number and graph theory. Linear algebra is a blend of discrete and continuous math - matrices are discrete arrays of numbers, but they're used to transform continuous geometric space.
+
+Determinants are a geometric property of matrix transformations. They give the scale factor the transformation matrix will apply to an area. If you scale a matrix by 2, the determinant doubles, if you rotate it the determinant stays the same
+As an aside, you might see this formula in other forms, like:
+
+```
+| a c |
+| b d | = ad - bc
+```
+
+This is the same thing as the formula above, `a = b.x - a.x`, `b = c.y - a.y`, `c = b.y - a.y`, `d = c.x - a.x`, just factored more simply. Using the language of matrices, the signed area formula is the determinant of two vectors `u` and `v` as columns or rows depending on whether we're using a left-handed or right-handed coordinate system. You may also see this formula referred to as the "shoelace" formula, this is a special case of that formula that sums the determinant for all edge pairs in a polygon.
+
+# Final notes
+`drawLine` is now dead code that is not called anywhere, but we'll keep it around for now. You never know when we'll want to draw a line.
+
+## Winding order and the cross product sign
+
+The industry-standard front-face convention is **CCW winding**: when looking at
+a visible face, its vertices are listed counterclockwise. This convention is
+used by all major 3D tools (Blender, Maya) and model formats (OBJ, glTF, FBX),
+regardless of the tool's native coordinate system.
+
+The cross product z-component encodes this: for two edge vectors **u** and **v**
+derived from a triangle's vertices, `z = u.x*v.y - u.y*v.x` gives the signed
+area of the parallelogram they span. The sign tells you the winding:
+
+- **y-up space** (model/camera space): CCW triangle → **positive** z
+- **y-down space** (screen space): CCW triangle → **negative** z
+
+The triangle hasn't changed — the y-flip when projecting to screen space inverts
+the sign. The cull condition flips with it:
+
+| Space         | Visible (CCW) | Cull condition |
+|---------------|---------------|----------------|
+| Camera (y-up) | z > 0         | z <= 0         |
+| Screen (y-down)| z < 0        | z >= 0         |
+
+Most rasterizers perform the cull in screen space since the projected 2D
+vertices are already available there. The sign inversion is not a bug — it is
+the expected consequence of the y-flip. You can also negate the formula once
+(`v.y*u.x - v.x*u.y`) so that CCW gives positive in screen space too, trading
+an unintuitive comparison for an unintuitive formula.
+
+Backface culling — discarding triangles whose winding has flipped in screen space
+because the camera is viewing them from behind — is the practical application of
+this sign test. It is covered once the transform pipeline (model → world → camera
+→ screen) is in place, since that is the context that makes the sign flip
+meaningful.

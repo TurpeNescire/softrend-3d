@@ -27,6 +27,8 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR   *
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.                                 *
  * ************************************************************************** */
+#include <stdio.h>
+
 #include "../include/fenster.h"
 
 #define WIDTH  600
@@ -153,30 +155,35 @@ static inline void updateSpan(int x, int *left_x, int *right_x) {
 void drawTriangle(const Triangle *tri, uint32_t color) {
     const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
 
-    // area is area of the parallelogram of two vectors formed
-    // from the three ponits of tri computed with their cross product.
-    // We could divide by 2 for the exact area, but if the parallelogram area
-    // is 0, then so is the 1/2 area that is the triangle's area.
-    // int area = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
-    // if (area == 0) return;
+    // The cross product for 2D vectors has only a z-component: (0, 0, (b-a)*(c-a)).
+    // That z value equals the signed parallelogram area spanned by u and v.
+    // Zero means two or more of the vertices are collinear — no triangle to draw.
+    int crossProductZ = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    if (crossProductZ == 0) return;
 
-    // Find the vertical span of the triangle
-    int top_y = int_min(a->y, int_min(b->y, c->y));
-    int bot_y = int_max(a->y, int_max(b->y, c->y));
+    // Find the vertical span of the triangle, clamp to vertical screen bounds
+    int top_y = int_max(
+        int_min(a->y, int_min(b->y, c->y)),
+        0
+    );
+    int bot_y = int_min(
+        int_max(a->y, int_max(b->y, c->y)),
+        HEIGHT - 1
+    );
 
     // Loop over each scanline in the vertical span
-    for (int sy = top_y; sy <= bot_y; sy++) {
+    for (int scan_y = top_y; scan_y <= bot_y; scan_y++) {
         // Keep track of the current x bounds of any crossing edges
         int left_x = INT_MAX, right_x = INT_MIN, x;
 
         // Update the current horizontal span
-        if (crossesScanlineAt(a, b, sy, &x)) updateSpan(x, &left_x, &right_x);
-        if (crossesScanlineAt(b, c, sy, &x)) updateSpan(x, &left_x, &right_x);
-        if (crossesScanlineAt(c, a, sy, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(a, b, scan_y, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(b, c, scan_y, &x)) updateSpan(x, &left_x, &right_x);
+        if (crossesScanlineAt(c, a, scan_y, &x)) updateSpan(x, &left_x, &right_x);
 
-        // Fill the current span, claming to the edges of the screen
-        for (int sx = int_max(left_x, 0); sx <= int_min(right_x, WIDTH - 1); sx++) {
-            PIXEL(sx, sy) = color;
+        // Fill the current span, clamping to the edges of the screen
+        for (int scan_x = int_max(left_x, 0); scan_x <= int_min(right_x, WIDTH - 1); scan_x++) {
+            PIXEL(scan_x, scan_y) = color;
         }
     } 
 }
@@ -199,50 +206,49 @@ int main()
         .buf    = buffer
     };
     
-    // x-dominant (wide/flat)   — top-left cell
-    Triangle tri0 = { { .x =  20, .y = 170 },
-                      { .x = 180, .y = 170 },
-                      { .x = 100, .y =  30 } };
-    // y-dominant (tall/narrow) — top-middle cell
-    Triangle tri1 = { { .x = 270, .y = 180 },
-                      { .x = 330, .y = 180 },
-                      { .x = 300, .y =  20 } };
-    // one vertical edge        — top-right cell
-    Triangle tri2 = { { .x = 410, .y =  20 },
-                      { .x = 410, .y = 180 },
-                      { .x = 580, .y = 100 } };
-    // one horizontal edge      — bottom-left cell
-    Triangle tri3 = { { .x =  20, .y = 210 },
-                      { .x = 180, .y = 210 },
-                      { .x = 100, .y = 380 } };
-    // right triangle           — bottom-middle cell
-    Triangle tri4 = { { .x = 220, .y = 220 },
-                      { .x = 220, .y = 380 },
-                      { .x = 380, .y = 380 } };
-    // two coincident vertices  — bottom-right cell
-    Triangle tri5 = { { .x = 500, .y = 220 },
-                      { .x = 500, .y = 220 },
-                      { .x = 420, .y = 370 } };
-    // single point — tucked in corner of bottom-right cell
+    Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
+                      { .x = 180, .y = 170 },   // bottom-right
+                      { .x = 100, .y =  30 } }; // top-middle
+    // y-dominant (tall/narrow)    — top-middle cell
+    Triangle tri1 = { { .x = 270, .y = 180 },   // bottom-left
+                      { .x = 330, .y = 180 },   // bottom-right
+                      { .x = 300, .y =  20 } }; // top-middle
+    // one vertical edge           — top-right cell
+    Triangle tri2 = { { .x = 410, .y =  20 },   // top-left
+                      { .x = 410, .y = 180 },   // bottom-left
+                      { .x = 580, .y = 100 } }; // right-middle
+    // one horizontal edge         — bottom-left cell
+    Triangle tri3 = { { .x =  20, .y = 210 },   // bottom-left
+                      { .x = 100, .y = 380 },   // top-middle
+                      { .x = 180, .y = 210 } }; // bottom-right
+    // right triangle              — bottom-middle cell
+    Triangle tri4 = { { .x = 220, .y = 220 },   // top-left
+                      { .x = 220, .y = 380 },   // bottom-left
+                      { .x = 380, .y = 380 } }; // bottom-right
+    // degenerate: two coincident vertices  — bottom-right cell
+    Triangle tri5 = { { .x = 500, .y = 220 },   // top-right
+                      { .x = 500, .y = 220 },   // top-right
+                      { .x = 420, .y = 370 } }; // bottom-left
+    // degenerate: single point    — tucked in corner of bottom-right cell
     Triangle tri6 = { { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 },
                       { .x = 570, .y = 370 } };
-    // near-horizontal sliver   - left-side middle
-    Triangle tri7 = { { .x =  20, .y = 195 },
-                      { .x = 180, .y = 195 },
-                      { .x = 180, .y = 194 } };
-    // near-vertical sliver     - bottom-left between yellow and cyan tris
-    Triangle tri8 = { { .x = 200, .y = 210 },
-                      { .x = 200, .y = 380 },
-                      { .x = 201, .y = 295 } };
-    // horizontal line degenerate - in the middle between green and cyan tris
-    Triangle tri9 = { { .x = 240, .y = 200 },
-                      { .x = 310, .y = 200 },
-                      { .x = 380, .y = 200 } };
-    // vertical line degenerate  - bottom-right between cyan and magenta tris
-    Triangle tri10 = { { .x = 400, .y = 220 },
-                       { .x = 400, .y = 380 },
-                       { .x = 400, .y = 300 } };
+    // near-horizontal sliver      - left-side middle
+    Triangle tri7 = { { .x =  20, .y = 195 },   // left
+                      { .x = 180, .y = 195 },   // right
+                      { .x = 180, .y = 194 } }; // 1 pixel above right
+    // near-vertical sliver        - bottom-left between yellow and cyan tris
+    Triangle tri8 = { { .x = 200, .y = 210 },   // top
+                      { .x = 200, .y = 380 },   // bottom
+                      { .x = 201, .y = 295 } }; // middle, 1 pixel right
+    // degenerate: horizontal line - in the middle between green and cyan tris
+    Triangle tri9 = { { .x = 240, .y = 200 },   // left
+                      { .x = 310, .y = 200 },   // middle
+                      { .x = 380, .y = 200 } }; // right
+    // degenerate: vertical line   - bottom-right between cyan and magenta tris
+    Triangle tri10 = { { .x = 400, .y = 220 },   // bottom 
+                       { .x = 400, .y = 380 },   // top 
+                       { .x = 400, .y = 300 } }; // middle
     drawTriangle(&tri0, colors[RED]);
     drawTriangle(&tri1, colors[GREEN]);
     drawTriangle(&tri2, colors[BLUE]);
