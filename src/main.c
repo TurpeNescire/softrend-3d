@@ -27,7 +27,11 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR   *
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.                                 *
  * ************************************************************************** */
-#include <stdio.h>
+#include <stdint.h>  // uint32_t, int64_t types
+#include <stdbool.h> // bool
+#include <limits.h>  // INT_MIN/MAX defines (from compiler built-ins, -2147483648 to 2147483647)
+#include <stdlib.h>  // abs()
+#include <stdio.h>   // printf()
 
 #include "../include/fenster.h"
 
@@ -152,26 +156,26 @@ static inline void updateSpan(int x, int *left_x, int *right_x) {
     if (x > *right_x) *right_x = x;
 }
 
+// Draws the Triangle filled with the ARGB format value in color. Triangles with
+// 0 area (degenerate) are skipped. Calls crossesScanlineAt for each triangle
+// edge to find if and where it crosses the current scanline, then fills
+// between those edges if they exist.
+// TODO: Calculate slope for each edge once and pass to crossesScanlineAt()
 void drawTriangle(const Triangle *tri, uint32_t color) {
     const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
 
-    // The cross product for 2D vectors has only a z-component: (0, 0, (b-a)*(c-a)).
+    // The cross product for 2D vectors has only a z-component: (0, 0, (b-a)×(c-a)).
     // That z value equals the signed parallelogram area spanned by u and v.
-    // Zero means two or more of the vertices are collinear — no triangle to draw.
-    int crossProductZ = (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+    // A value of zero means no area — no triangle to draw.
+    // 2D cross product formula: u × v = (0, 0, u.x*v.y - u.y*v.x)
+    int crossProductZ = ((b->x - a->x) * (c->y - a->y)) - ((b->y - a->y) * (c->x - a->x));
     if (crossProductZ == 0) return;
 
     // Find the vertical span of the triangle, clamp to vertical screen bounds
-    int top_y = int_max(
-        int_min(a->y, int_min(b->y, c->y)),
-        0
-    );
-    int bot_y = int_min(
-        int_max(a->y, int_max(b->y, c->y)),
-        HEIGHT - 1
-    );
+    int top_y = int_max( int_min(a->y, int_min(b->y, c->y)), 0 );
+    int bot_y = int_min( int_max(a->y, int_max(b->y, c->y)), HEIGHT - 1);
 
-    // Loop over each scanline in the vertical span
+    // Loop over each scanline in the vertical span, find then fill its horizontal span
     for (int scan_y = top_y; scan_y <= bot_y; scan_y++) {
         // Keep track of the current x bounds of any crossing edges
         int left_x = INT_MAX, right_x = INT_MIN, x;
@@ -181,7 +185,7 @@ void drawTriangle(const Triangle *tri, uint32_t color) {
         if (crossesScanlineAt(b, c, scan_y, &x)) updateSpan(x, &left_x, &right_x);
         if (crossesScanlineAt(c, a, scan_y, &x)) updateSpan(x, &left_x, &right_x);
 
-        // Fill the current span, clamping to the edges of the screen
+        // Fill the current span, clamp to horizontal screen bounds
         for (int scan_x = int_max(left_x, 0); scan_x <= int_min(right_x, WIDTH - 1); scan_x++) {
             PIXEL(scan_x, scan_y) = color;
         }
@@ -206,6 +210,7 @@ int main()
         .buf    = buffer
     };
     
+    // x-dominant (wide/flat)      — top-left cell
     Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
                       { .x = 180, .y = 170 },   // bottom-right
                       { .x = 100, .y =  30 } }; // top-middle
@@ -276,7 +281,7 @@ int main()
         // Time since last FPS print
         int64_t elapsedMS = fenster_time() - secondStartMS;
         if (elapsedMS >= 1000) {
-            printf("fps: %.1f\n", frameCount * 1000.0f / elapsedMS);
+            printf("fps: %.1f\n", frameCount * 1000.0 / elapsedMS);
             frameCount    = 0;
             secondStartMS = fenster_time();
         }
