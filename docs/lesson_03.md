@@ -21,7 +21,7 @@ Triangles are also always convex, which means a horizontal scanline can intersec
 
 <figure>
   <img src="{{ '/images/lesson_02_triangle_test_cases_colored_rounded.png' | relative_url }}" alt="Lesson 3: Colored Triangles From Lesson 2" style="width:100%">
-  <figcaption>Colored Triangles from the end of Lesson 2</figcaption>
+  <figcaption>Colored triangles from the end of Lesson 2</figcaption>
 </figure>
 
 We left off having drawn the outline of triangles to the screen using our `drawLine` function to interpolate the position of each pixel on the line between two points. We've also talked about the scanline rasterization process used to render an image to a CRT screen and how triangles have the advantage of allowing us to easily find and fill the span between the two edges crossing the scanline. The algorithm we'll use is just that easy: we iterate from the top of a triangle to the bottom, finding where the edges of the triangle cross the current scanline, and filling the gap between the two edges - the span. A triangle is thus filled from top to bottom, with each horizontal span filling from the left edge to the right.
@@ -38,8 +38,8 @@ typedef struct Vec2 {
 } Vec2;
 ```
 
-## Adding the Triangle type and drawTriangle()
-We can then change our `drawLine` function signature to take two `Vec2` objects by reference instead of four `int` objects by value. We won't need to change their values, so we can declare them `const`. We can either replace all uses of `x0`, `y0`, `x1` and `x2` inside `drawLine` with `v0->x`, `v0->y`, `v1->x` and `v1->y` or create aliases as I've done here. With the const hint to the compiler and with optimizations on, the compiler should optimize the code into the same thing aside from the signature differences.
+## Adding drawTriangle()
+We can then change our `drawLine` function signature to take two `Vec2` objects by reference instead of four `int` objects by value. We won't need to change their values, so we can declare them `const`. We can either replace all uses of `x0`, `y0`, `x1` and `x2` inside `drawLine` with `v0->x`, `v0->y`, `v1->x` and `v1->y` or create convenience pointers as I've done here. With the const hint to the compiler and with optimizations on, the compiler should optimize the code into the same thing aside from the signature differences.
 
 ```c
 void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
@@ -47,77 +47,67 @@ void drawLine(const Vec2 *v0, const Vec2 *v1, uint32_t color) {
     int x1 = v1->x, y1 = v1->y;
 ```
 
-Along with `Vec2` it will be helpful to have a `Triangle` data type that can bundle all three `Vec2` vertices together for convenience. After the `Vec2` definition I placed:
+After `drawLine` and before `main` I defined a new function `drawTriangle`:
 
 ```c
-typedef struct Triangle {
-    Vec2 v0;
-    Vec2 v1;
-    Vec2 v2;
-} Triangle;
-```
-
-and created a new function `drawTriangle` that I defined after `drawLine` and before `main`:
-
-```c
-void drawTriangle(const Triangle *tri, uint32_t color) {
-    drawLine(&tri->v0, &tri->v1, color);
-    drawLine(&tri->v1, &tri->v2, color);
-    drawLine(&tri->v2, &tri->v0, color);
+void drawTriangle(const Vec2 *tri, uint32_t color) {
+    drawLine(&tri[0], &tri[1], color);
+    drawLine(&tri[1], &tri[2], color);
+    drawLine(&tri[2], &tri[0], color);
 }
 ```
 
-And inside `main` changed our `drawLine` calls into `Triangle` definitions and calls to `drawTriangle`:
+And inside `main` changed our `drawLine` calls into `const Vec2` array definitions and calls to `drawTriangle`:
 
 ```c
         .buf    = buffer
     };
     
     // x-dominant (wide/flat)      — top-left cell
-    Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
-                      { .x = 180, .y = 170 },   // bottom-right
-                      { .x = 100, .y =  30 } }; // top-middle
+    const Vec2 tri0[] = { { .x =  20, .y = 170 },   // bottom-left
+                          { .x = 180, .y = 170 },   // bottom-right
+                          { .x = 100, .y =  30 } }; // top-middle
     // y-dominant (tall/narrow)    — top-middle cell
-    Triangle tri1 = { { .x = 270, .y = 180 },   // bottom-left
-                      { .x = 330, .y = 180 },   // bottom-right
-                      { .x = 300, .y =  20 } }; // top-middle
+    const Vec2 tri1[] = { { .x = 270, .y = 180 },   // bottom-left
+                          { .x = 330, .y = 180 },   // bottom-right
+                          { .x = 300, .y =  20 } }; // top-middle
     // one vertical edge           — top-right cell
-    Triangle tri2 = { { .x = 410, .y =  20 },   // top-left
-                      { .x = 410, .y = 180 },   // bottom-left
-                      { .x = 580, .y = 100 } }; // right-middle
+    const Vec2 tri2[] = { { .x = 410, .y =  20 },   // top-left
+                          { .x = 410, .y = 180 },   // bottom-left
+                          { .x = 580, .y = 100 } }; // right-middle
     // one horizontal edge         — bottom-left cell
-    Triangle tri3 = { { .x =  20, .y = 210 },   // bottom-left
-                      { .x = 180, .y = 210 },   // bottom-right
-                      { .x = 100, .y = 380 } }; // top-middle
+    const Vec2 tri3[] = { { .x =  20, .y = 210 },   // bottom-left
+                          { .x = 100, .y = 380 },   // top-middle
+                          { .x = 180, .y = 210 } }; // bottom-right
     // right triangle              — bottom-middle cell
-    Triangle tri4 = { { .x = 220, .y = 220 },   // top-left
-                      { .x = 220, .y = 380 },   // bottom-left
-                      { .x = 380, .y = 380 } }; // bottom-right
+    const Vec2 tri4[] = { { .x = 220, .y = 220 },   // top-left
+                          { .x = 220, .y = 380 },   // bottom-left
+                          { .x = 380, .y = 380 } }; // bottom-right
     // degenerate: two coincident vertices  — bottom-right cell
-    Triangle tri5 = { { .x = 500, .y = 220 },   // top-right
-                      { .x = 500, .y = 220 },   // top-right
-                      { .x = 420, .y = 370 } }; // bottom-left
+    const Vec2 tri5[] = { { .x = 500, .y = 220 },   // top-right
+                          { .x = 500, .y = 220 },   // top-right
+                          { .x = 420, .y = 370 } }; // bottom-left
     // degenerate: single point    — tucked in corner of bottom-right cell
-    Triangle tri6 = { { .x = 570, .y = 370 },
-                      { .x = 570, .y = 370 },
-                      { .x = 570, .y = 370 } };
-    drawTriangle(&tri0, colors[RED]);
-    drawTriangle(&tri1, colors[GREEN]);
-    drawTriangle(&tri2, colors[BLUE]);
-    drawTriangle(&tri3, colors[YELLOW]);
-    drawTriangle(&tri4, colors[CYAN]);
-    drawTriangle(&tri5, colors[MAGENTA]);
-    drawTriangle(&tri6, colors[ORANGE]);
+    const Vec2 tri6[] = { { .x = 570, .y = 370 },
+                          { .x = 570, .y = 370 },
+                          { .x = 570, .y = 370 } };
+    drawTriangle(tri0, colors[RED]);
+    drawTriangle(tri1, colors[GREEN]);
+    drawTriangle(tri2, colors[BLUE]);
+    drawTriangle(tri3, colors[YELLOW]);
+    drawTriangle(tri4, colors[CYAN]);
+    drawTriangle(tri5, colors[MAGENTA]);
+    drawTriangle(tri6, colors[ORANGE]);
 
     // Open a system window using the given window specifications
     if (fenster_open(&window) < 0) return 1;
 ```
 
-We're back to drawing our example triangles exactly as we started the lesson. What have we gained? We can now pass vertex information around in a more convenient fashion, but also have a better abstraction layer, passing each `Triangle` to `drawTriangle`. Within `drawTriangle` we now need to find and fill all of the spans where the triangle crosses the spanline. At the least, we need to know the vertical screen space height of the triangle so that we can iterate over each scanline that touches the triangle. 
+We're back to drawing our example triangles exactly as we started the lesson. What have we gained? We can now pass vertex information around in a more convenient fashion, but also have a better abstraction layer, passing each `Vec2` array of triangle vertices to `drawTriangle`. Within `drawTriangle` we now need to find and fill all of the spans where the triangle crosses the spanline. At the least, we need to know the vertical screen space height of the triangle so that we can iterate over each scanline that touches the triangle. 
 
 The easiest way to find the minimum and maximum of three integer values is to create a few helper functions, `int_min` and `int_max`, both declared to be `static inline`. `inline` tells the compiler to replace the function calls with their bodies at each occurence, avoiding the added overhead of calling a function. For small functions like this the compiler will carry out that optimization by itself, but it's good practice to provide those hints to the reader and the compiler. `static` tells the compiler that the function symbol is only accessible from this file.
 
-Before `drawLine` and after the `Triangle` definition:
+Before `drawLine` and after the `Vec2` definition:
 
 ```c
 // Utility math functions
@@ -133,8 +123,8 @@ static inline int int_min(int x, int y) {
 and we replace `drawTriangle` with:
 
 ```c
-void drawTriangle(const Triangle *tri, uint32_t color) {
-    const Vec2 *v0 = &tri->v0, *v1 = &tri->v1, *v2 = &tri->v2;
+void drawTriangle(const Vec2 *tri, uint32_t color) {
+    const Vec2 *a = &tri[0], *b = &tri[1], *c = &tri[2];
 
     // Find the vertical span of the triangle, clamp to vertical screen bounds
     int top_y = int_max( int_min(a->y, int_min(b->y, c->y)), 0 );
@@ -178,20 +168,24 @@ static inline void updateSpan(int x, int *left_x, int *right_x) {
     if (x > *right_x) *right_x = x;
 }
 
-void drawTriangle(const Triangle *tri, uint32_t color) {
-    const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
+void drawTriangle(const Vec2 *tri, uint32_t color) {
+    const Vec2 *a = &tri[0], *b = &tri[1], *c = &tri[2];
 
     // Find the vertical span of the triangle, clamp to vertical screen bounds
     int top_y = int_max( int_min(a->y, int_min(b->y, c->y)), 0 );
     int bot_y = int_min( int_max(a->y, int_max(b->y, c->y)), HEIGHT - 1);
 
+    // Loop over each scanline in the vertical span, find then fill its horizontal span
     for (int scan_y = top_y; scan_y <= bot_y; scan_y++) {
+        // Keep track of the current x bounds of any crossing edges
         int left_x = INT_MAX, right_x = INT_MIN, x;
 
+        // Update the current horizontal span
         if (crossesScanlineAt(a, b, scan_y, &x)) updateSpan(x, &left_x, &right_x);
         if (crossesScanlineAt(b, c, scan_y, &x)) updateSpan(x, &left_x, &right_x);
         if (crossesScanlineAt(c, a, scan_y, &x)) updateSpan(x, &left_x, &right_x);
 
+        // Fill the current span, clamp to horizontal screen bounds
         for (int scan_x = int_max(left_x, 0); scan_x <= int_min(right_x, WIDTH - 1); scan_x++) {
             PIXEL(scan_x, scan_y) = color;
         }
@@ -209,31 +203,31 @@ We now have our filled triangles. You might notice the single orange pixel trian
 
 ```c
     // degenerate: single point    — tucked in corner of bottom-right cell
-    Triangle tri6 = { { .x = 570, .y = 370 },
-                      { .x = 570, .y = 370 },
-                      { .x = 570, .y = 370 } };
+    const Vec2 tri6[] = { { .x = 570, .y = 370 },
+                          { .x = 570, .y = 370 },
+                          { .x = 570, .y = 370 } };
     // near-horizontal sliver      - left-side middle
-    Triangle tri7 = { { .x =  20, .y = 195 },   // left
-                      { .x = 180, .y = 195 },   // right
-                      { .x = 180, .y = 194 } }; // 1 pixel above right
+    const Vec2 tri7[] = { { .x =  20, .y = 195 },   // left
+                          { .x = 180, .y = 195 },   // right
+                          { .x = 180, .y = 194 } }; // 1 pixel above right
     // near-vertical sliver        - bottom-left between yellow and cyan tris
-    Triangle tri8 = { { .x = 200, .y = 210 },   // top
-                      { .x = 200, .y = 380 },   // bottom
-                      { .x = 201, .y = 295 } }; // middle, 1 pixel right
+    const Vec2 tri8[] = { { .x = 200, .y = 210 },   // top
+                          { .x = 200, .y = 380 },   // bottom
+                          { .x = 201, .y = 295 } }; // middle, 1 pixel right
     // degenerate: horizontal line - in the middle between green and cyan tris
-    Triangle tri9 = { { .x = 240, .y = 200 },   // left
-                      { .x = 310, .y = 200 },   // middle
-                      { .x = 380, .y = 200 } }; // right
+    const Vec2 tri9[] = { { .x = 240, .y = 200 },   // left
+                          { .x = 310, .y = 200 },   // middle
+                          { .x = 380, .y = 200 } }; // right
     // degenerate: vertical line   - bottom-right between cyan and magenta tris
-    Triangle tri10 = { { .x = 400, .y = 220 },   // bottom 
-                       { .x = 400, .y = 380 },   // top 
-                       { .x = 400, .y = 300 } }; // middle
+    const Vec2 tri10[] = { { .x = 400, .y = 220 },   // bottom 
+                           { .x = 400, .y = 380 },   // top 
+                           { .x = 400, .y = 300 } }; // middle
 ...
-    drawTriangle(&tri6, colors[ORANGE]);
-    drawTriangle(&tri7, colors[PURPLE]);
-    drawTriangle(&tri8, colors[WHITE]);
-    drawTriangle(&tri9, colors[GRAY]);
-    drawTriangle(&tri10, colors[SILVER]);
+    drawTriangle(tri6, colors[ORANGE]);
+    drawTriangle(tri7, colors[PURPLE]);
+    drawTriangle(tri8, colors[WHITE]);
+    drawTriangle(tri9, colors[GRAY]);
+    drawTriangle(tri10, colors[SILVER]);
 ```
 
 <figure>
@@ -253,11 +247,11 @@ When you take the cross product of two 2D vectors, the resulting vector is a "3D
 
 `u × v = (u.y*v.z - u.z*v.y, u.z*v.x - u.x*v.z, u.x*v.y - u.y*v.x)`
 
-Where `u` and `v` are two vectors of the form `(x, y, z)`. The multiplication symbole used in `u × v` denotes the cross product of two vectors, which two scalar variables multipled by one another. The video below walks through how to arrive at the area of a triangle using the cross product definition.
+Where `u` and `v` are two vectors of the form `(x, y, z)`. The multiplication symbol used in `u × v` denotes the cross product of two vectors, which is not the same as the times symbol used to indicate multiplying two scalar values together. The video below walks through how to arrive at the area of a triangle using the cross product definition.
 
 <figure>
   <video width="100%" controls loop muted>
-    <source src="{{ '/images/lesson_03_CrossProductAnimation.mp4' | relative_url }}" type="video/mp4">
+    <source src="{{ '/images/lesson_03_CrossProductAnimation2.mp4' | relative_url }}" type="video/mp4">
   </video>
   <figcaption>Finding the triangle area via cross product</figcaption>
 </figure>
@@ -296,8 +290,8 @@ which is what we wanted to prove. With these two multiplications and five subtra
 We can now use the cross product formula for 2D vectors that we just derived to skip drawing any degenerate triangles with an area of 0, such as triangles where two or more vertices are coincident or all three vertices are colineaer (on the same straight line):
 
 ```c
-void drawTriangle(const Triangle *tri, uint32_t color) {
-    const Vec2 *a = &tri->v0, *b = &tri->v1, *c = &tri->v2;
+void drawTriangle(const Vec2 *tri, uint32_t color) {
+    const Vec2 *a = &tri[0], *b = &tri[1], *c = &tri[2];
 
     // The cross product for 2D vectors has only a z-component: (0, 0, (b-a)×(c-a)).
     // That z value equals the signed parallelogram area spanned by u and v.
@@ -336,17 +330,19 @@ What does it mean for these position vectors to be clockwise or counter-clockwis
 Look at the definition for `tri3`:
 
 ```c
-    Triangle tri3 = { { .x =  20, .y = 210 },   // top-left
-                      { .x = 180, .y = 210 },   // top-right
-                      { .x = 100, .y = 380 } }; // bottom
+    // one horizontal edge         — bottom-left cell
+    const Vec2 tri3[] = { { .x =  20, .y = 210 },   // top-left
+                          { .x = 180, .y = 210 },   // top-right
+                          { .x = 100, .y = 380 } }; // bottom
 ```
 
 Following the points in order across their appearance on screen shows them to be in clockwise order. Looking at all of our other filled triangles, they are listed in counter-clockwise order:
 
 ```c
-    Triangle tri0 = { { .x =  20, .y = 170 },   // bottom-left
-                      { .x = 180, .y = 170 },   // bottom-right
-                      { .x = 100, .y =  30 } }; // top-middle
+    // x-dominant (wide/flat)      — top-left cell
+    const Vec2 tri0[] = { { .x =  20, .y = 170 },   // bottom-left
+                          { .x = 180, .y = 170 },   // bottom-right
+                          { .x = 100, .y =  30 } }; // top-middle
 ```
 
 This is what the video mentions at the end: in a positive-y up, positive-x to the right coordinate system, when a cross product has a positive-z component value, the triangle has counter-clockwise winding, and clockwise when it is negative. We can change the winding order of `tri3`, or the winding order of all the other triangles. We'll talk more later about this cross-product winding check and how it relates to culling triangles, but you might already be able to see how it can be very useful for optimizing a 3D engine. To end this section, let's fix it so all of the filled triangles render. That's a two step process, see if you can do it yourself first.
@@ -354,7 +350,7 @@ This is what the video mentions at the end: in a positive-y up, positive-x to th
 In `drawTriangle` change the test back to rejecting triangles with areas greater than 0:
 
 ```c
-    // Zero means two or more of the vertices are collinear — no triangle to draw.
+    // A value of zero means no area — no triangle to draw.
     // 2D cross product formula: u × v = (0, 0, u.x*v.y - u.y*v.x)
     int crossProductZ = ((b->x - a->x) * (c->y - a->y)) - ((b->y - a->y) * (c->x - a->x));
     if (crossProductZ > 0) return;
@@ -367,9 +363,9 @@ and in `main` change the winding of `tri3` so it now also has a negative cross p
 
 ```c
     // one horizontal edge         — bottom-left cell
-    Triangle tri3 = { { .x =  20, .y = 210 },   // bottom-left
-                      { .x = 100, .y = 380 },   // top-middle
-                      { .x = 180, .y = 210 } }; // bottom-right
+    const Vec2 tri3[] = { { .x =  20, .y = 210 },   // bottom-left
+                          { .x = 100, .y = 380 },   // top-middle
+                          { .x = 180, .y = 210 } }; // bottom-right
 ```
 
 <figure>
@@ -394,14 +390,14 @@ But this shows two of our degenerate straight line triangles still rendering. We
   <figcaption>A Blender scene with visible surface normal lines</figcaption>
 </figure>
 
-Winding order can be a bit abstract. If you have familiarity with modeling software, you can toggle the visibility of surface normals. Above shows a scene in Blender with visible surface normals toggled as short visible perpendicular lines. The normal is calculated using the dot product formula we used to find triangle area. When an object is exported, Blender or Maya or whatever package you are using will list the vertices of the triangles in counter-clock wise order from the perspective of the surface normal. This allows anyone reading the exported model to calculate the correct normal based only on the winding order of the vertices. It may be that you import an object and all of the normals are inverted and pointing in the opposite direction, and Blender and other software have tools to recalculate and flip all of the normals. CCW winding is just by convention, but it is an industry standard.
+Winding order can be a bit abstract. Many 3D modelling applications allow you to toggle the visibility of surface normals. Above shows a scene in Blender with visible surface normals toggled as short visible perpendicular lines. The normal is calculated using the dot product formula we used to find triangle area. When an object is exported, Blender or Maya or whatever package you are using will list the vertices of the triangles in counter-clock wise order from the perspective of the surface normal. This allows anyone reading the exported model to calculate the correct normal based only on the winding order of the vertices. It may be that you import an object and all of the normals are inverted and pointing in the opposite direction, and Blender and other software have tools to recalculate and flip all of the normals. CCW winding is just by convention, but it is an industry standard.
 
 There are several other related issues that complicate an understanding of winding order, which I'll just mention and we'll clarify further later. For one, along with winding order every 3D engine has to be specific about the coordinate system it's working with. We've mentioned that we're using a screen space coordinate system with `y` values increasing downwards and `x` values increasing to the right. If we flip to having `y` increase upwards, the sign of the cross product will flip also. You might wonder why the area we calculated in `crossProductZ` is negative for visible triangles. If we interpret `y` as increasing upwards, `crossProductZ` would be positive for visible triangles. The sign of the cross product is therefore determined by the signs of the `x` and `y` values we're using in this way.
 
 Another issue that is closely related is called the handed-ness of the coordinate system. There are two possible types of coordinate systems, which you'll hear referred to as *right-handed* or *left-handed*. We don't need to worry about this yet until we start using the third `z` dimension of vectors more. For now, it's enough to grasp the distinction of giving coordinates in `y` up or `y` down space, and that the cross-product formula is used to determine the direction of the surface normal for a triangle. And finally that convention tells us that we should interpret the winding order of a triangle in CCW order when viewing the triangle from the normal facing direction.
 
 # Where are we now
-At this point, we have the basic building blocks of a 3D renderer. We could manually describe all of the triangles in a static scene just as we've done with this handful of triangles, or load them from a 3D model file, and apply this kind of triangle fill shading to each triangle with a single manually specified RBG color and render millions of triangles to draw an image from your favorite modern video game. The complexity of a 3D engine comes from dynamically changing that view, moving the camera around the scene, applying positional transformations to those triangles, determining their draw order and which triangles to avoid drawing, as well as lighting and texturing them and a million other operations. Below is a comparison of the current version of my engine with unlit textures on a 10 million triangle scene to an [OpenGL version](https://3dworldgen.blogspot.com/2017/01/san-miguel-scene.html) of the San Miguel scene by Guillermo Llaguno. Theoretically we could implement mesh loading from a file where triangle and vertex has been placed to simulate perspective distortion and scene depth relative to the viewer, and then render this image just by iterating over every triangle and using the `drawTriangle` function as we've implemented it. But as soon as we attempt to implement camera movement the illusion will break. We'd lose the perspective distortion and the depth accuracy of the triangles and it would turn in to a mess of random colors and lines. There's still a lot of machinery left that needs to be implemented to get us to handle moving around the scene.
+At this point, we have the basic building blocks of a 3D renderer. We could manually describe all of the triangles in a static scene just as we've done with this handful of triangles, or load them from a 3D model file, and apply this kind of triangle fill shading to each triangle with a single manually specified RBG color and render millions of triangles to draw an image from your favorite modern video game. The complexity of a 3D engine comes from dynamically changing that view, moving the camera around the scene, applying positional transformations to those triangles, determining their draw order and which triangles to avoid drawing, as well as lighting and texturing them and a host of other possible operations. Below is a comparison of the current version of my engine with unlit textures on a 10 million triangle scene to an [OpenGL version](https://3dworldgen.blogspot.com/2017/01/san-miguel-scene.html) of the San Miguel scene by Guillermo Llaguno. Theoretically we could implement mesh loading from a file where triangle and vertex has been placed to simulate perspective distortion and scene depth relative to the viewer, and then render this image just by iterating over every triangle and using the `drawTriangle` function as we've implemented it. But as soon as we attempt to implement camera movement the illusion will break. We'd lose the perspective distortion and the depth accuracy of the triangles and it would turn in to a mess of random colors and lines. There's still a lot of machinery left that needs to be implemented to get us to handle moving around the scene.
 
 <figure>
   <img src="{{ '/images/lesson_03_san-miguel_unlit.png' | relative_url }}" alt="Current Softrend unlit San Miguel" style="width:100%">
@@ -439,12 +435,12 @@ I just realized that the clang compiled on macOS includes the C standard library
 
 ## Updated drawTriangle() comment
 ```c
-// Draws the Triangle filled with the ARGB format value in color. Triangles with
+// Draws the triangle filled with the ARGB format value in color. Triangles with
 // 0 area (degenerate) are skipped. Calls crossesScanlineAt for each triangle
 // edge to find if and where it crosses the current scanline, then fills
 // between those edges if they exist.
 // TODO: Calculate slope for each edge once and pass to crossesScanlineAt()
-void drawTriangle(const Triangle *tri, uint32_t color) {
+void drawTriangle(const Vec2 *tri, uint32_t color) {
 ```
 
 ## Timing code
