@@ -150,7 +150,7 @@ static inline void updateSpan(int x, int *left_x, int *right_x) {
     if (x > *right_x) *right_x = x;
 }
 
-// Draws the Triangle filled with the ARGB format value in color. Triangles with
+// Draws the triangle filled with the ARGB format value in color. Triangles with
 // 0 area (degenerate) are skipped. Calls crossesScanlineAt for each triangle
 // edge to find if and where it crosses the current scanline, then fills
 // between those edges if they exist.
